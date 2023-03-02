@@ -26,7 +26,6 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
         }
     }
     for (int i = 0; i < iterations; i++) {
-        // print_matrix(gold_world, height, width);
         unsigned* tem = (unsigned*) malloc(width*height*sizeof(unsigned));
         for(int y = 0; y < height; y++) {
             for(int x = 0; x < width; x++) {
@@ -49,6 +48,8 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
                 gold_world[y*height+x] = tem[y*height+x];
             }
         }
+        // print_matrix(gold_world, height, width);
+
         free(tem);
     }
 }    
