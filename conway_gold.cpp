@@ -7,6 +7,9 @@
 extern "C" 
 void computeGoldSeq(  unsigned* gold_world, unsigned* h_world, int width, int height, int iterations);
 
+extern "C" 
+unsigned int compare( const unsigned* reference, const unsigned* data, const unsigned int len, const bool verbose);
+
 extern "C"
 void print_matrix(unsigned *u, int h, int w);
 
@@ -23,7 +26,7 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
         }
     }
     for (int i = 0; i < iterations; i++) {
-        print_matrix(gold_world, height, width);
+        // print_matrix(gold_world, height, width);
         unsigned* tem = (unsigned*) malloc(width*height*sizeof(unsigned));
         for(int y = 0; y < height; y++) {
             for(int x = 0; x < width; x++) {
@@ -49,6 +52,21 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
         free(tem);
     }
 }    
+
+unsigned int compare( const unsigned* reference, const unsigned* data, const unsigned int len, const bool verbose)
+{
+    bool result = true;
+    for( unsigned int i = 0; i < len; ++i) 
+    {
+        if( reference[i] != data[i] ) 
+        {
+            if( verbose)
+                printf("Error: data[%d] = %d, reference[%d] = %d\n", i, data[i], i, reference[i]);
+            result = false;
+        }
+    }
+    return result;
+}
 
 void print_matrix(unsigned *u, int h, int w) 
 {
