@@ -17,7 +17,7 @@
 void runTest( int argc, char** argv );
 
 void randomInit( unsigned int* world );
-void behiveInit(unsigned int* world);
+void customInit(unsigned int* world, int (*coords)[2], int len);
 
 extern "C" 
 void computeGoldSeq(  unsigned* reference, unsigned* idata, int width, int height, int iterations);
@@ -46,8 +46,10 @@ void runTest( int argc, char** argv )
     unsigned int mem_size = sizeof(unsigned) * world_size;
 
     // randomly initialize the world in host memory
+    int behive[6][2]= {{0,1},{0,2},{1,0},{1,3},{2,1},{2,2}};
+    // int glider[5][2]= {{0,1},{1,2},{2,0},{2,1},{2,2}};
     unsigned *h_world = (unsigned*) malloc (mem_size);
-    behiveInit(h_world);
+    customInit(h_world, behive, 6);
 
     unsigned int timer;
     CUT_SAFE_CALL(cutCreateTimer(&timer));
@@ -73,22 +75,23 @@ void randomInit( unsigned int* world )
     }
 }
 
-void behiveInit(unsigned int* world)
+void customInit(unsigned int* world, int (*coords)[2], int len)
 {
+    // if world width and height is less than 5, initialize with random values
+    if (WORLD_WIDTH < 5 || WORLD_HEIGHT < 5) {
+        randomInit(world);
+        return;
+    }
     // zero out the world
     for( unsigned int i = 0; i < WORLD_WIDTH * WORLD_HEIGHT; ++i) 
     {
         world[i] = 0;
     }
-    world[WORLD_WIDTH * 1 + 2] = 1;
-    // world[WORLD_WIDTH * 1 + 0] = 1;
-    // world[WORLD_WIDTH * 0 + 0] = 1;
-    // world[WORLD_WIDTH * 1 + 1] = 1;
-    world[WORLD_WIDTH * 1 + 3] = 1;
-    world[WORLD_WIDTH * 2 + 1] = 1;
-    world[WORLD_WIDTH * 2 + 4] = 1;
-    world[WORLD_WIDTH * 3 + 2] = 1;
-    world[WORLD_WIDTH * 3 + 3] = 1;
+    // initialize the world with the given coordinates
+    // printf("len %d", len);
+    for (int i = 0; i < len; i++) {
+        world[coords[i][0] * WORLD_WIDTH + coords[i][1]] = 1;
+    }
 }
 
 
