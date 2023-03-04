@@ -8,14 +8,19 @@
 #include <math.h>
 #include <cutil.h>
 
+#include <GL/glew.h>
+#include <GL/glut.h>
+
 #include <conway_kernel.cu>
 
 # define WORLD_WIDTH  1024
 # define WORLD_HEIGHT 1024
-# define ITERATIONS   1000
+# define ITERATIONS   10
 
 ////////////////////////////////////////////////////////////////////////////////
 // main test routine  
+void init();
+void display();
 void runTest( int argc, char** argv );
 
 void randomInit( unsigned int* world );
@@ -35,8 +40,38 @@ void print_matrix(unsigned *u, int h, int w);
 ////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char** argv ) 
 {
-    runTest( argc, argv);
-    return EXIT_SUCCESS;
+
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+    glutInitWindowSize(WORLD_WIDTH, WORLD_HEIGHT);
+    glutCreateWindow("Conway's Game of Life");
+
+    glewInit();
+
+    glutDisplayFunc(display);
+    
+    glutMainLoop();
+
+    return 0;
+
+
+    // runTest( argc, argv);
+    // return EXIT_SUCCESS;
+}
+
+void display()
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    glBegin(GL_QUADS);
+        glColor3f(1.0, 0.0, 0.0);
+        glVertex2f(-0.5, -0.5);
+        glVertex2f(-0.5, 0.5);
+        glVertex2f(0.5, 0.5);
+        glVertex2f(0.5, -0.5);
+    glEnd();
+
+    glutSwapBuffers();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -52,12 +87,13 @@ void runTest( int argc, char** argv )
 
     // randomly initialize the world in host memory
     // int behive[6][2]= {{0,1},{0,2},{1,0},{1,3},{2,1},{2,2}};
-    int glider[5][2]= {{0,1},{1,2},{2,0},{2,1},{2,2}};
-    int 
+    // int glider[5][2]= {{0,1},{1,2},{2,0},{2,1},{2,2}};
+    // int pulsar[48][2] = {{2,4}, {2,5}, {2,6}, {2,10}, {2,11}, {2,12}, {4,2}, {4,7}, {4,9}, {4,14}, {5,2}, {5,7}, {5,9}, {5,14}, {7,4}, {7,5}, {7,6}, {7,10}, {7,11}, {7,12}, {9,4}, {9,5}, {9,6}, {9,10}, {9,11}, {9,12}, {10,2}, {10,7}, {10,9}, {10,14}, {11,2}, {11,7}, {11,9}, {11,14}, {12,2}, {12,7}, {12,9}, {12,14}, {14,4}, {14,5}, {14,6}, {14,10}, {14,11}, {14,12}};
     // int line[3][2]= {{0,1},{1,1},{2,1}};
     // int square [4][2] = {{0,0},{0,1},{1,0},{1,1}};
     unsigned *h_world = (unsigned*) malloc (mem_size);
-    customInit(h_world, glider, 5);
+    // customInit(h_world, pulsar, 48);
+    randomInit(h_world);
     // print_matrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);
 
     unsigned int timer;
@@ -110,7 +146,6 @@ void runTest( int argc, char** argv )
     } else {
         CUDA_SAFE_CALL(cudaMemcpy(h_world, d_world_out, mem_size, cudaMemcpyDeviceToHost));
     }
-    // CUDA_SAFE_CALL(cudaMemcpy(h_world, d_world_out, mem_size, cudaMemcpyDeviceToHost));
  
     // print_matrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);  
  
@@ -136,7 +171,7 @@ void randomInit( unsigned int* world )
 void customInit(unsigned int* world, int (*coords)[2], int len)
 {
     // if world width and height is less than 5, initialize with random values
-    if (WORLD_WIDTH < 5 || WORLD_HEIGHT < 5) {
+    if (WORLD_WIDTH < len || WORLD_HEIGHT < len) {
         randomInit(world);
         return;
     }
