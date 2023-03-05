@@ -3,55 +3,55 @@
 #endif
 
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h> 
-#include <cutil.h>
-
-#include <GL/glew.h>
+#include <stdio.h>    
+#include <string.h>  
+#include <math.h>    
+#include <cutil.h>  
+ 
+#include <GL/glew.h>  
 #include <GL/glut.h>
  
 #include <conway_kernel.cu>
 
-# define WORLD_WIDTH  16
-# define WORLD_HEIGHT 16
-# define ITERATIONS   1 
+# define WORLD_WIDTH 4096  
+# define WORLD_HEIGHT 4096  
+# define ITERATIONS   700       
     
-///////////////////////////////////////////////////////////////////// ///////////
-// main test routine   
+////////////////////////////////////////////////////////////////////////////////
+// main test routine    
 void init();
 void display();
 void runTest( int argc, char** argv ); 
- 
+
 void randomInit( unsigned int* world );
 void customInit(unsigned int* world, int (*coords)[2], int len);
 /////////////////////////////////////////////////////////////////////////////////
-// conway_gold.cpp 
+// conway_gold.cpp
 extern "C"  
 void computeGoldSeq(  unsigned* reference, unsigned* idata, int width, int height, int iterations); 
 
 extern "C" 
-unsigned int compare( const unsigned* reference, unsigned* data, const unsigned int len, const bool verbose);
- 
-extern "C" 
+unsigned int compare( const unsigned* reference, const unsigned* data, const unsigned int len, const bool verbose);
+
+extern "C"
 void printMatrix(unsigned *u, int h, int w);
-//////////////////////////////////////////////////////////// //////////////////// 
+//////////////////////////////////////////////////////////////////////////////// 
 // bit_utils.cpp   
-extern "C"   
-void printBinary(unsigned n); 
- 
-extern "C"  
+extern "C" 
+void printBinary(unsigned n);
+
+extern "C" 
 void bitPerCellEncode(unsigned *in, unsigned char  *out, int width, int height); 
 
 extern "C"
-void bitPerCellDecode(unsigned char *in, unsigned *out, int width, int height);  
+void bitPerCellDecode(unsigned char *in, unsigned *out, int width, int height); 
 
-//////////////////////////////////////////////////////////////////////////////// 
-// Program main 
+////////////////////////////////////////////////////////////////////////////////
+// Program main
 ////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char** argv ) 
 {
- 
+
     // glutInit(&argc, argv); 
     // glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
     // glutInitWindowSize(WORLD_WIDTH, WORLD_HEIGHT);
@@ -59,13 +59,14 @@ int main( int argc, char** argv )
 
     // glewInit();
 
-    // glutDisplayFunc(display); 
+    // glutDisplayFunc(display);
     
     // glutMainLoop();
 
     // return 0;
 
-    runTest( argc, argv); 
+
+    runTest( argc, argv);
     return EXIT_SUCCESS;
 }
 
@@ -81,14 +82,14 @@ void display()
         glVertex2f(0.5, -0.5);
     glEnd();
 
-    glutSwapBuffers(); 
+    glutSwapBuffers();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 //! Run a scan test for CUDA 
 //////////////////////////////////////////////////////////////////////////////// 
 void runTest( int argc, char** argv )
-{ 
+{
     float device_time; 
     float host_time;
 
@@ -98,58 +99,55 @@ void runTest( int argc, char** argv )
 
     // randomly initialize the world in host memory
     // int behive[6][2]= {{0,1},{0,2},{1,0},{1,3},{2,1},{2,2}};
-    int glider[5][2]= {{0,1},{1,2},{2,0},{2,1},{2,2}};
-    // int pulsar[48][2] = {{2,4}, {2,5}, {2,6}, {2,10}, {2,11}, {2,12}, {4,2}, {4,7}, {4,9}, {4,14}, {5,2}, {5,7}, {5,9}, {5,14}, {7,4}, {7,5}, {7,6}, {7,10}, {7,11}, {7,12}, {9,4}, {9,5}, {9,6}, {9,10}, {9,11}, {9,12}, {10,2}, {10,7}, {10,9}, {10,14}, {11,2}, {11,7}, {11,9}, {11,14}, {12,2}, {12,7}, {12,9}, {12,14}, {14,4}, {14,5}, {14,6}, {14,10}, {14,11}, {14,12}};
+    // int glider[5][2]= {{0,1},{1,2},{2,0},{2,1},{2,2}};
+    int pulsar[48][2] = {{2,4}, {2,5}, {2,6}, {2,10}, {2,11}, {2,12}, {4,2}, {4,7}, {4,9}, {4,14}, {5,2}, {5,7}, {5,9}, {5,14}, {7,4}, {7,5}, {7,6}, {7,10}, {7,11}, {7,12}, {9,4}, {9,5}, {9,6}, {9,10}, {9,11}, {9,12}, {10,2}, {10,7}, {10,9}, {10,14}, {11,2}, {11,7}, {11,9}, {11,14}, {12,2}, {12,7}, {12,9}, {12,14}, {14,4}, {14,5}, {14,6}, {14,10}, {14,11}, {14,12}};
     // int line[3][2]= {{0,1},{1,1},{2,1}};
     // int square [4][2] = {{0,0},{0,1},{1,0},{1,1}};
     unsigned *h_world = (unsigned*) malloc (mem_size);
-    customInit(h_world, glider, 5);
+    customInit(h_world, pulsar, 48);
     // randomInit(h_world); 
-    printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);
+    // printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);
 
     unsigned int timer;  
     CUT_SAFE_CALL(cutCreateTimer(&timer));
 
     // compute reference solution using sequential cpu
-    unsigned *gold_world = (unsigned*) malloc (mem_size); 
-    cutStartTimer(timer);  
+    unsigned *gold_world = (unsigned*) malloc (mem_size);
+    cutStartTimer(timer); 
     computeGoldSeq(gold_world, h_world, WORLD_WIDTH, WORLD_HEIGHT, ITERATIONS);
     cutStopTimer(timer);
     printf("Processing %d x %d world for %d iterations\n", WORLD_WIDTH, WORLD_HEIGHT, ITERATIONS);
     printf("**===-------------------------------------------------===**\n");
     printf("HOST CPU Processing time: %f (ms)\n", cutGetTimerValue(timer));
     
-    if (VERBOSE) {
-        printf("cpu computed world: \n");
-        printMatrix(gold_world, WORLD_HEIGHT, WORLD_WIDTH); 
-    }
+    // printMatrix(gold_world, WORLD_HEIGHT, WORLD_WIDTH);
 
     host_time = cutGetTimerValue(timer);
     CUT_SAFE_CALL(cutDeleteTimer(timer));
 
-    // **===----------------- Allocate device data structures -----------===** 
-    unsigned char *d_world_in;
+    // **===----------------- Allocate device data structures -----------===**
+    unsigned char *d_world_in; 
     unsigned char *d_world_out;
 
     // encode the world into a bit array
-    unsigned char *h_world_bits = (unsigned char*) malloc (bit_mem_size); 
+    unsigned char *h_world_bits = (unsigned char*) malloc (bit_mem_size);
     bitPerCellEncode(h_world, h_world_bits, WORLD_WIDTH, WORLD_HEIGHT);
 
-    // unsigned *temp_world = (unsigned*) malloc (mem_size); 
+    // unsigned *temp_world = (unsigned*) malloc (mem_size);
     // bitPerCellDecode(h_world_bits, temp_world, WORLD_WIDTH, WORLD_HEIGHT);
     // printf("bits world [0]:  %d\n", h_world_bits[0]); // 64 for glider
-    // printf("bits world [1]:  %d\n", h_world_bits[1]); // 142 for glider 
-    // printMatrix(temp_world, WORLD_HEIGHT, WORLD_WIDTH);
+    // printf("bits world [1]:  %d\n", h_world_bits[1]); // 142 for glider
+    // printMatrix(temp_world, WORLD_WIDTH, WORLD_HEIGHT);
     // free(temp_world);
 
 
     CUDA_SAFE_CALL(cudaMalloc((void**) &d_world_in, bit_mem_size));
     CUDA_SAFE_CALL(cudaMalloc((void**) &d_world_out, bit_mem_size));
     // copy host memory to device input array
-    CUDA_SAFE_CALL(cudaMemcpy(d_world_in, h_world_bits, bit_mem_size, cudaMemcpyHostToDevice));   
-    // initialize all the other device arrays to be safe 
-    CUDA_SAFE_CALL(cudaMemcpy(d_world_out, h_world_bits, bit_mem_size, cudaMemcpyHostToDevice) );   
- 
+    CUDA_SAFE_CALL(cudaMemcpy(d_world_in, h_world_bits, bit_mem_size, cudaMemcpyHostToDevice));
+    // initialize all the other device arrays to be safe
+    CUDA_SAFE_CALL(cudaMemcpy(d_world_out, h_world_bits, bit_mem_size, cudaMemcpyHostToDevice) );
+
     // **===----------------- Launch the device computation ----------------===** 
     // run once to remove startup overhead
     runConwayKernel(&d_world_in, &d_world_out, WORLD_HEIGHT, WORLD_WIDTH, 1);
@@ -162,7 +160,7 @@ void runTest( int argc, char** argv )
 
     cutStopTimer(timer);
     printf("CUDA GPU Processing time: %f (ms)\n", cutGetTimerValue(timer));
-    device_time = cutGetTimerValue(timer);
+    device_time = cutGetTimerValue(timer);  
     printf("Speedup: %fX\n", host_time/device_time);     
     
     // **===-------- Deallocate data structure  -----------===**
@@ -175,15 +173,10 @@ void runTest( int argc, char** argv )
     // decode the world from the bit array
     bitPerCellDecode(h_world_bits, h_world, WORLD_WIDTH, WORLD_HEIGHT);
     
-    printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);  
+    // printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);  
  
-    unsigned int result = compare(gold_world, h_world, world_size, VERBOSE);
-    printf("Test %s\n", (1 == result) ? "PASSED" : "FAILED");  
-
-    if (VERBOSE && result == 0){
-        printf("world with errors: \n");
-        printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);     
-    }
+    unsigned int result = compare(gold_world, h_world, world_size, false);
+    printf("Test %s\n", (1 == result) ? "PASSED" : "FAILED"); 
 
      
     CUT_SAFE_CALL(cutDeleteTimer(timer));
@@ -196,38 +189,28 @@ void runTest( int argc, char** argv )
  
 void randomInit( unsigned int* world )  
 { 
-    if (IS_RAND) {
-        srand( time(NULL) );
-    } else {
-        srand( 234232 ) ;
-    }
     for( unsigned int i = 0; i < WORLD_WIDTH * WORLD_HEIGHT; ++i) 
-    {    
+    {
         world[i] = (int)(rand() % 2);
     } 
 }
 
-void customInit(unsigned int* world, int (*coords)[2], int len) 
+void customInit(unsigned int* world, int (*coords)[2], int len)
 {
-    // // if world width and height is less than 5, initialize with random values
-    // if (WORLD_WIDTH < len || WORLD_HEIGHT < len) {
-    //     randomInit(world); 
-    //     return;
-    // }
-    // zero out the world 
+    // if world width and height is less than 5, initialize with random values
+    if (WORLD_WIDTH < len || WORLD_HEIGHT < len) {
+        randomInit(world);
+        return;
+    }
+    // zero out the world
     for( unsigned int i = 0; i < WORLD_WIDTH * WORLD_HEIGHT; ++i) 
     {
         world[i] = 0;
-    } 
+    }
     // initialize the world with the given coordinates
     // printf("len %d", len);
     for (int i = 0; i < len; i++) {
-        if (coords[i][0] >= WORLD_HEIGHT || coords[i][1] >= WORLD_WIDTH) {
-            printf("Error: coordinates out of bounds");
-            exit(1);
-        }
         world[coords[i][0] * WORLD_WIDTH + coords[i][1]] = 1;
-        // printf("coords %d %d\n", coords[i][0], coords[i][1]);
     }
 }
  
