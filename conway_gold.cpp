@@ -11,7 +11,7 @@ extern "C"
 unsigned int compare( const unsigned* reference, const unsigned* data, const unsigned int len, const bool verbose);
 
 extern "C"
-void print_matrix(unsigned *u, int h, int w);
+void printMatrix(unsigned *u, int h, int w);
 
 ////////////////////////////////////////////////////////////////////////////////
 //! Compute reference data set
@@ -69,7 +69,7 @@ unsigned int compare( const unsigned* reference, const unsigned* data, const uns
     return result;
 }
 
-void print_matrix(unsigned *u, int h, int w) 
+void printMatrix(unsigned *u, int h, int w) 
 {
     for(int i = 0; i < h; i++) {
         for(int j = 0; j < w; j++) {

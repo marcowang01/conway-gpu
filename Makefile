@@ -46,7 +46,7 @@ EXECUTABLE	:= conway
 CUFILES		:= conway.cu
 
 # C/C++ source files (compiled with gcc / c++)
-CCFILES		:= conway_gold.cpp
+CCFILES		:= conway_gold.cpp bit_utils.cpp
 
 ################################################################################
 # Rules and targets

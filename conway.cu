@@ -5,35 +5,46 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
+#include <math.h> 
 #include <cutil.h>
 
 #include <GL/glew.h>
 #include <GL/glut.h>
-
+ 
 #include <conway_kernel.cu>
 
-# define WORLD_WIDTH  1024
-# define WORLD_HEIGHT 1024
-# define ITERATIONS   10
-
+# define WORLD_WIDTH  16
+# define WORLD_HEIGHT 16
+# define ITERATIONS   1 
+    
 ////////////////////////////////////////////////////////////////////////////////
-// main test routine  
+// main test routine   
 void init();
 void display();
-void runTest( int argc, char** argv );
+void runTest( int argc, char** argv ); 
 
 void randomInit( unsigned int* world );
 void customInit(unsigned int* world, int (*coords)[2], int len);
-
+/////////////////////////////////////////////////////////////////////////////////
+// conway_gold.cpp
 extern "C"  
-void computeGoldSeq(  unsigned* reference, unsigned* idata, int width, int height, int iterations);
+void computeGoldSeq(  unsigned* reference, unsigned* idata, int width, int height, int iterations); 
 
 extern "C" 
 unsigned int compare( const unsigned* reference, const unsigned* data, const unsigned int len, const bool verbose);
 
 extern "C"
-void print_matrix(unsigned *u, int h, int w);
+void printMatrix(unsigned *u, int h, int w);
+//////////////////////////////////////////////////////////////////////////////// 
+// bit_utils.cpp   
+extern "C" 
+void printBinary(unsigned n);
+
+extern "C" 
+void bitPerCellEncode(unsigned *in, unsigned char  *out, int width, int height); 
+
+extern "C"
+void bitPerCellDecode(unsigned char *in, unsigned *out, int width, int height); 
 
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
@@ -41,22 +52,22 @@ void print_matrix(unsigned *u, int h, int w);
 int main( int argc, char** argv ) 
 {
 
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowSize(WORLD_WIDTH, WORLD_HEIGHT);
-    glutCreateWindow("Conway's Game of Life");
+    // glutInit(&argc, argv); 
+    // glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+    // glutInitWindowSize(WORLD_WIDTH, WORLD_HEIGHT);
+    // glutCreateWindow("Conway's Game of Life");
 
-    glewInit();
+    // glewInit();
 
-    glutDisplayFunc(display);
+    // glutDisplayFunc(display);
     
-    glutMainLoop();
+    // glutMainLoop();
 
-    return 0;
+    // return 0;
 
 
-    // runTest( argc, argv);
-    // return EXIT_SUCCESS;
+    runTest( argc, argv);
+    return EXIT_SUCCESS;
 }
 
 void display()
@@ -84,19 +95,20 @@ void runTest( int argc, char** argv )
 
     unsigned int world_size = WORLD_WIDTH * WORLD_HEIGHT;
     unsigned int mem_size = sizeof(unsigned) * world_size;
+    unsigned int bit_mem_size = sizeof(char) * (world_size / 8 + 1); // pad with + 1 if not divisible by 8
 
     // randomly initialize the world in host memory
     // int behive[6][2]= {{0,1},{0,2},{1,0},{1,3},{2,1},{2,2}};
-    // int glider[5][2]= {{0,1},{1,2},{2,0},{2,1},{2,2}};
+    int glider[5][2]= {{0,1},{1,2},{2,0},{2,1},{2,2}};
     // int pulsar[48][2] = {{2,4}, {2,5}, {2,6}, {2,10}, {2,11}, {2,12}, {4,2}, {4,7}, {4,9}, {4,14}, {5,2}, {5,7}, {5,9}, {5,14}, {7,4}, {7,5}, {7,6}, {7,10}, {7,11}, {7,12}, {9,4}, {9,5}, {9,6}, {9,10}, {9,11}, {9,12}, {10,2}, {10,7}, {10,9}, {10,14}, {11,2}, {11,7}, {11,9}, {11,14}, {12,2}, {12,7}, {12,9}, {12,14}, {14,4}, {14,5}, {14,6}, {14,10}, {14,11}, {14,12}};
     // int line[3][2]= {{0,1},{1,1},{2,1}};
     // int square [4][2] = {{0,0},{0,1},{1,0},{1,1}};
     unsigned *h_world = (unsigned*) malloc (mem_size);
-    // customInit(h_world, pulsar, 48);
-    randomInit(h_world);
-    // print_matrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);
+    customInit(h_world, glider, 5);
+    // randomInit(h_world); 
+    printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);
 
-    unsigned int timer;
+    unsigned int timer;  
     CUT_SAFE_CALL(cutCreateTimer(&timer));
 
     // compute reference solution using sequential cpu
@@ -108,22 +120,33 @@ void runTest( int argc, char** argv )
     printf("**===-------------------------------------------------===**\n");
     printf("HOST CPU Processing time: %f (ms)\n", cutGetTimerValue(timer));
     
-    // print_matrix(gold_world, WORLD_HEIGHT, WORLD_WIDTH);
+    // printMatrix(gold_world, WORLD_HEIGHT, WORLD_WIDTH);
 
     host_time = cutGetTimerValue(timer);
     CUT_SAFE_CALL(cutDeleteTimer(timer));
 
     // **===----------------- Allocate device data structures -----------===**
-    unsigned *d_world_in;
-    unsigned *d_world_out;
+    unsigned char *d_world_in;
+    unsigned char *d_world_out;
+
+    // encode the world into a bit array
+    unsigned char *h_world_bits = (unsigned char*) malloc (bit_mem_size);
+    bitPerCellEncode(h_world, h_world_bits, WORLD_WIDTH, WORLD_HEIGHT);
+
+    // unsigned *temp_world = (unsigned*) malloc (mem_size);
+    // bitPerCellDecode(h_world_bits, temp_world, WORLD_WIDTH, WORLD_HEIGHT);
+    // printf("bits world [0]:  %d\n", h_world_bits[0]); // 64 for glider
+    // printf("bits world [1]:  %d\n", h_world_bits[1]); // 142 for glider
+    // printMatrix(temp_world, WORLD_WIDTH, WORLD_HEIGHT);
+    // free(temp_world);
 
 
-    CUDA_SAFE_CALL(cudaMalloc((void**) &d_world_in, mem_size));
-    CUDA_SAFE_CALL(cudaMalloc((void**) &d_world_out, mem_size));
+    CUDA_SAFE_CALL(cudaMalloc((void**) &d_world_in, bit_mem_size));
+    CUDA_SAFE_CALL(cudaMalloc((void**) &d_world_out, bit_mem_size));
     // copy host memory to device input array
-    CUDA_SAFE_CALL(cudaMemcpy(d_world_in, h_world, mem_size, cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpy(d_world_in, h_world_bits, bit_mem_size, cudaMemcpyHostToDevice));
     // initialize all the other device arrays to be safe
-    CUDA_SAFE_CALL(cudaMemcpy(d_world_out, h_world, mem_size, cudaMemcpyHostToDevice) );
+    CUDA_SAFE_CALL(cudaMemcpy(d_world_out, h_world_bits, bit_mem_size, cudaMemcpyHostToDevice) );
 
     // **===----------------- Launch the device computation ----------------===** 
     // run once to remove startup overhead
@@ -142,12 +165,15 @@ void runTest( int argc, char** argv )
     
     // **===-------- Deallocate data structure  -----------===**
     if (ITERATIONS % 2 == 0) {
-        CUDA_SAFE_CALL(cudaMemcpy(h_world, d_world_in, mem_size, cudaMemcpyDeviceToHost));
+        CUDA_SAFE_CALL(cudaMemcpy(h_world_bits, d_world_in, bit_mem_size, cudaMemcpyDeviceToHost));
     } else {
-        CUDA_SAFE_CALL(cudaMemcpy(h_world, d_world_out, mem_size, cudaMemcpyDeviceToHost));
+        CUDA_SAFE_CALL(cudaMemcpy(h_world_bits, d_world_out, bit_mem_size, cudaMemcpyDeviceToHost));
     }
- 
-    // print_matrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);  
+
+    // decode the world from the bit array
+    bitPerCellDecode(h_world_bits, h_world, WORLD_WIDTH, WORLD_HEIGHT);
+    
+    printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);  
  
     unsigned int result = compare(gold_world, h_world, world_size, false);
     printf("Test %s\n", (1 == result) ? "PASSED" : "FAILED"); 
@@ -155,6 +181,7 @@ void runTest( int argc, char** argv )
      
     CUT_SAFE_CALL(cutDeleteTimer(timer));
     free(h_world);  
+    free(h_world_bits);
     free(gold_world); 
     CUDA_SAFE_CALL(cudaFree(d_world_in)); 
     CUDA_SAFE_CALL(cudaFree(d_world_out));
