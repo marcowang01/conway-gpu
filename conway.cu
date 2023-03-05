@@ -3,19 +3,19 @@
 #endif
 
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h> 
-#include <cutil.h>
-
-#include <GL/glew.h>
+#include <stdio.h>    
+#include <string.h>  
+#include <math.h>    
+#include <cutil.h>  
+ 
+#include <GL/glew.h>  
 #include <GL/glut.h>
  
 #include <conway_kernel.cu>
 
-# define WORLD_WIDTH  16
-# define WORLD_HEIGHT 16
-# define ITERATIONS   1 
+# define WORLD_WIDTH 128  
+# define WORLD_HEIGHT 128 
+# define ITERATIONS   100     
     
 ////////////////////////////////////////////////////////////////////////////////
 // main test routine   
@@ -99,14 +99,14 @@ void runTest( int argc, char** argv )
 
     // randomly initialize the world in host memory
     // int behive[6][2]= {{0,1},{0,2},{1,0},{1,3},{2,1},{2,2}};
-    int glider[5][2]= {{0,1},{1,2},{2,0},{2,1},{2,2}};
-    // int pulsar[48][2] = {{2,4}, {2,5}, {2,6}, {2,10}, {2,11}, {2,12}, {4,2}, {4,7}, {4,9}, {4,14}, {5,2}, {5,7}, {5,9}, {5,14}, {7,4}, {7,5}, {7,6}, {7,10}, {7,11}, {7,12}, {9,4}, {9,5}, {9,6}, {9,10}, {9,11}, {9,12}, {10,2}, {10,7}, {10,9}, {10,14}, {11,2}, {11,7}, {11,9}, {11,14}, {12,2}, {12,7}, {12,9}, {12,14}, {14,4}, {14,5}, {14,6}, {14,10}, {14,11}, {14,12}};
+    // int glider[5][2]= {{0,1},{1,2},{2,0},{2,1},{2,2}};
+    int pulsar[48][2] = {{2,4}, {2,5}, {2,6}, {2,10}, {2,11}, {2,12}, {4,2}, {4,7}, {4,9}, {4,14}, {5,2}, {5,7}, {5,9}, {5,14}, {7,4}, {7,5}, {7,6}, {7,10}, {7,11}, {7,12}, {9,4}, {9,5}, {9,6}, {9,10}, {9,11}, {9,12}, {10,2}, {10,7}, {10,9}, {10,14}, {11,2}, {11,7}, {11,9}, {11,14}, {12,2}, {12,7}, {12,9}, {12,14}, {14,4}, {14,5}, {14,6}, {14,10}, {14,11}, {14,12}};
     // int line[3][2]= {{0,1},{1,1},{2,1}};
     // int square [4][2] = {{0,0},{0,1},{1,0},{1,1}};
     unsigned *h_world = (unsigned*) malloc (mem_size);
-    customInit(h_world, glider, 5);
+    customInit(h_world, pulsar, 48);
     // randomInit(h_world); 
-    printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);
+    // printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);
 
     unsigned int timer;  
     CUT_SAFE_CALL(cutCreateTimer(&timer));
@@ -160,7 +160,7 @@ void runTest( int argc, char** argv )
 
     cutStopTimer(timer);
     printf("CUDA GPU Processing time: %f (ms)\n", cutGetTimerValue(timer));
-    device_time = cutGetTimerValue(timer);
+    device_time = cutGetTimerValue(timer);  
     printf("Speedup: %fX\n", host_time/device_time);     
     
     // **===-------- Deallocate data structure  -----------===**
@@ -173,7 +173,7 @@ void runTest( int argc, char** argv )
     // decode the world from the bit array
     bitPerCellDecode(h_world_bits, h_world, WORLD_WIDTH, WORLD_HEIGHT);
     
-    printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);  
+    // printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);  
  
     unsigned int result = compare(gold_world, h_world, world_size, false);
     printf("Test %s\n", (1 == result) ? "PASSED" : "FAILED"); 

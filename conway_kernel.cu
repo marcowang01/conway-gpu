@@ -11,8 +11,8 @@ extern "C"
 void printMatrix(unsigned *u, int h, int w);
 ////////////////////////////////////////////////////////////////////////////////
 
-#define BLOCK_SIZE 16
-#define BYTES_PER_THREAD 2
+#define BLOCK_SIZE 32
+#define BYTES_PER_THREAD 8
 
 // TODO: change to using bytes instead of ints
 
@@ -46,26 +46,27 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         data1 |= (uint) d_world_in[y + x] << 8; // the cell to the right and down
         data2 |= (uint) d_world_in[yDown + x] << 8; // the cell to the right and down
 
-        if (tid == 0) {
-            printf("printing data 0 1 2 \n");
-            for(int i = 31; i >= 0; i--) {
-                if (i % 8 == 7)
-                    printf(" ");
-                printf("%d", (data0 >> i) & 1);
-            }
-            printf("\n");
-            for(int i = 31; i >= 0; i--) {
-                if (i % 8 == 7)
-                    printf(" ");
-                printf("%d", (data1 >> i) & 1);
-            }
-            printf("\n");
-            for(int i = 31; i >= 0; i--) {
-                if (i % 8 == 7)
-                    printf(" ");
-                printf("%d", (data2 >> i) & 1);
-            }
-        }
+        // if (tid == 4) {
+        //     printf("\nx = %d, y = %d, yUp = %d, yDown = %d\n", x, y, yUp, yDown);
+        //     printf("printing data 0 1 2 \n");
+        //     for(int i = 31; i >= 0; i--) {
+        //         if (i % 8 == 7)
+        //             printf(" ");
+        //         printf("%d", (data0 >> i) & 1);
+        //     }
+        //     printf("\n");
+        //     for(int i = 31; i >= 0; i--) {
+        //         if (i % 8 == 7)
+        //             printf(" ");
+        //         printf("%d", (data1 >> i) & 1);
+        //     }
+        //     printf("\n");
+        //     for(int i = 31; i >= 0; i--) {
+        //         if (i % 8 == 7)
+        //             printf(" ");
+        //         printf("%d", (data2 >> i) & 1);
+        //     }
+        // }
 
         for (uint j = 0; j < BYTES_PER_THREAD; j++)
         {
@@ -80,11 +81,10 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
             {
                 uint neighbours = (data0 & 0x14000) + (data1 & 0x14000) + (data2 & 0x14000);
                 neighbours >>= 14;
-                neighbours = (neighbours & 0x3) + (neighbours >> 2) + ((data0 >> 15) & 0x1u)
-                    + ((data2 >> 15) & 0x1u);
+                neighbours = (neighbours & 0x3) + (neighbours >> 2) + ((data0 >> 15) & 0x1u) + ((data2 >> 15) & 0x1u);
                 
-                if (neighbours > 0 && tid == 0)
-                    printf("\nidx: %d |\t neighbours: %d", j * 8 + k, neighbours);
+                // if (neighbours > 0 && tid == 1)
+                //     printf("\nidx: %d |\t neighbours: %d", j * 8 + k, neighbours);
 
                 result = result << 1 | (neighbours == 3 || (neighbours == 2 && (data1 & 0x8000u)) ? 1u : 0u);
 
@@ -92,7 +92,7 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
                 data1 <<= 1;
                 data2 <<= 1;
             }
-            d_world_out[currentState + y] = 1;
+            d_world_out[currentState + y] = result;
         }
     }
 } 
@@ -101,12 +101,12 @@ void runConwayKernel(unsigned char** d_world_in, unsigned char** d_world_out, in
 {   
     // TODO: handle case when things are not divisible by 8
     // may need to pad the matrix with the otherside of the matrix
-    assert(((height * width) / BYTES_PER_THREAD) % BLOCK_SIZE == 0);
+    assert(((height * width) / 8 / BYTES_PER_THREAD) % BLOCK_SIZE == 0);
 
     // each thread will process BYTES_PER_THREAD * 8 cells
     // each block will process contiguous BYTES_PER_THREAD * 8 * BLOCK_SIZE cells
 
-    size_t numBlocks = (height * width) / BYTES_PER_THREAD / BLOCK_SIZE;
+    size_t numBlocks = (height * width) / 8 / BYTES_PER_THREAD / BLOCK_SIZE;
 
     dim3 dimBlock(BLOCK_SIZE);
     dim3 dimGrid(numBlocks);
@@ -114,7 +114,7 @@ void runConwayKernel(unsigned char** d_world_in, unsigned char** d_world_out, in
     for (int i = 0; i < iterations; i++)
     {
         // FIXME: later on can clamp this to 32768 as max number of blocks
-        conway_kernel<<<dimGrid, dimBlock>>>(*d_world_in, *d_world_out, height, width);
+        conway_kernel<<<dimGrid, dimBlock>>>(*d_world_in, *d_world_out, height, width / 8);
         // cudaDeviceSynchronize();
         std::swap(d_world_in, d_world_out);
     }
