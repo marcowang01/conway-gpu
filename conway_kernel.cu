@@ -46,35 +46,35 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         data1 |= (uint) d_world_in[y + x] << 8; // the cell to the right and down
         data2 |= (uint) d_world_in[yDown + x] << 8; // the cell to the right and down
 
-        if (tid == 5) {
-            printf("\nx = %d, y = %d, yUp = %d, yDown = %d\n", x, y, yUp, yDown);
-            printf("printing data 0 1 2 \n");
-            for(int i = 31; i >= 0; i--) {
-                if (i % 8 == 7)
-                    printf(" ");
-                printf("%d", (data0 >> i) & 1);
-            }
-            printf("\n");
-            for(int i = 31; i >= 0; i--) {
-                if (i % 8 == 7)
-                    printf(" ");
-                printf("%d", (data1 >> i) & 1);
-            }
-            printf("\n");
-            for(int i = 31; i >= 0; i--) {
-                if (i % 8 == 7)
-                    printf(" ");
-                printf("%d", (data2 >> i) & 1);
-            }
-        }
-
         for (uint j = 0; j < BYTES_PER_THREAD; j++)
         {
             uint currentState = x; // current cell
-            x = (x + 1) % width; // the cell to the right
+            x = (x + 1) % width; // load in the 3rd, 4th, 5th, .... byte
             data0 |= (uint) d_world_in[yUp + x]; // the cell to the right and up
             data1 |= (uint) d_world_in[y + x]; // the cell to the right and down
             data2 |= (uint) d_world_in[yDown + x]; // the cell to the right and down
+
+            // if (tid == 0) {
+            //     printf("\nx = %d, y = %d, yUp = %d, yDown = %d\n", x, y, yUp, yDown);
+            //     printf("printing data 0 1 2 \n");
+            //     for(int i = 31; i >= 0; i--) {
+            //         if (i % 8 == 7)
+            //             printf(" ");
+            //         printf("%d", (data0 >> i) & 1);
+            //     }
+            //     printf("\n");
+            //     for(int i = 31; i >= 0; i--) {
+            //         if (i % 8 == 7)
+            //             printf(" ");
+            //         printf("%d", (data1 >> i) & 1);
+            //     }
+            //     printf("\n");
+            //     for(int i = 31; i >= 0; i--) {
+            //         if (i % 8 == 7)
+            //             printf(" ");
+            //         printf("%d", (data2 >> i) & 1);
+            //     }
+            // }
 
             uint result = 0;
             for (uint k = 0; k < 8; k++) // loop through each bit of the char
@@ -111,8 +111,8 @@ void runConwayKernel(unsigned char** d_world_in, unsigned char** d_world_out, in
 
     size_t numBlocks = (height * width) / 8 / BYTES_PER_THREAD / BLOCK_SIZE;
 
-    dim3 dimBlock(BLOCK_SIZE);
-    dim3 dimGrid(numBlocks);
+    dim3 dimBlock(BLOCK_SIZE, 1, 1);
+    dim3 dimGrid(numBlocks, 1, 1);
 
     for (int i = 0; i < iterations; i++)
     {
