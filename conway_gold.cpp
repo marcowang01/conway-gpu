@@ -35,7 +35,9 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
                 int x2 = (x+1)%width;
                 int y1 = (y-1+height)%height;
                 int y2 = (y+1)%height;
-                n += gold_world[y1*width+x1] + gold_world[y1*width+x] + gold_world[y1*width+x2] + gold_world[y*width+x1] + gold_world[y*width+x2] + gold_world[y2*width+x1] + gold_world[y2*width+x] + gold_world[y2*width+x2];
+                n += gold_world[y1*width+x1] + gold_world[y1*width+x] + gold_world[y1*width+x2] 
+                + gold_world[y*width+x1] + gold_world[y*width+x2] + gold_world[y2*width+x1] 
+                + gold_world[y2*width+x] + gold_world[y2*width+x2];
 
                 tem[y*height+x] = (n == 3 || (n == 2 && gold_world[y*height+x]));
             }

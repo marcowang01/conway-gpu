@@ -8,21 +8,21 @@
 #include <math.h>    
 #include <cutil.h>  
  
-#include <GL/glew.h>  
-#include <GL/glut.h>
+#include <GL/glew.h>    
+#include <GL/glut.h> 
  
 #include <conway_kernel.cu>
- 
-# define WORLD_WIDTH 2048 
-# define WORLD_HEIGHT 2048  
-# define ITERATIONS   100      
 
-# define VERBOSE false 
+# define WORLD_WIDTH 16384 
+# define WORLD_HEIGHT 16384  
+# define ITERATIONS   100
+ 
+# define VERBOSE false  
 # define IS_RAND false 
     
 ////////////////////////////////////////////////////////////////////////////////
 // main test routine    
-void init();
+void init(); 
 void display();
 void runTest( int argc, char** argv ); 
 
@@ -149,7 +149,6 @@ void runTest( int argc, char** argv )
     // printMatrix(temp_world, WORLD_HEIGHT, WORLD_WIDTH);
     // free(temp_world);
 
-
     CUDA_SAFE_CALL(cudaMalloc((void**) &d_world_in, bit_mem_size));
     CUDA_SAFE_CALL(cudaMalloc((void**) &d_world_out, bit_mem_size));
     // copy host memory to device input array
@@ -195,7 +194,6 @@ void runTest( int argc, char** argv )
         printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);     
     }
 
-     
     CUT_SAFE_CALL(cutDeleteTimer(timer));
     free(h_world);  
     free(h_world_bits);

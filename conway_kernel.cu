@@ -11,8 +11,8 @@ extern "C"
 void printMatrix(unsigned *u, int h, int w);
 ////////////////////////////////////////////////////////////////////////////////
 
-#define BLOCK_SIZE 128 
-#define BYTES_PER_THREAD 8 
+#define BLOCK_SIZE 256 
+#define BYTES_PER_THREAD 16 
 
 // TODO: change to using bytes instead of ints
 
