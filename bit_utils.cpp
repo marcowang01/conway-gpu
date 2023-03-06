@@ -19,21 +19,19 @@ void bitPerCellDecode(unsigned char*in, unsigned *out, int width, int height);
 // i.e. [1,0,1,0] -> [bx1010] -> [5] 
 void bitPerCellEncode(unsigned *in, unsigned char *out, int width, int height)
 {
+    for (int i = 0; i < width*height/8; i++) {
+        out[i] = 0;
+    }
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             // cell is either 0 or 1
+
             unsigned int cell = in[y*width+x];
             if (cell == 1) {
                 out[(y*width+x) / 8] |= 1 << (7 - (y*width+x) % 8);
-                // out[(y*width+x) / 32] |= 1 << ((y*width+x) % 32);
-                // printf("\nindex %d, ", (y*width+x) / 32);
-                // printBinary(out[(y*width+x) / 32]);
             }
         }
     }
-    // printf("\nencoded: ");
-    // printBinary(out[0]);
-    // printf("\n");
 }
 
 // convert a 32-bit per cell representation to 32-bit unsigned int per cell

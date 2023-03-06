@@ -7,7 +7,7 @@
 extern "C" 
 void printBinary(unsigned n);
 
-extern "C"
+extern "C" 
 void printMatrix(unsigned *u, int h, int w);
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -71,7 +71,7 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         for (uint j = 0; j < BYTES_PER_THREAD; j++)
         {
             uint currentState = x; // current cell
-            x = (x + 1) % width; // the cell to the right
+            x = (x + 1) % width; // load in the 3rd, 4th, 5th, .... byte
             data0 |= (uint) d_world_in[yUp + x]; // the cell to the right and up
             data1 |= (uint) d_world_in[y + x]; // the cell to the right and down
             data2 |= (uint) d_world_in[yDown + x]; // the cell to the right and down
@@ -108,8 +108,8 @@ void runConwayKernel(unsigned char** d_world_in, unsigned char** d_world_out, in
 
     size_t numBlocks = (height * width) / 8 / BYTES_PER_THREAD / BLOCK_SIZE;
 
-    dim3 dimBlock(BLOCK_SIZE);
-    dim3 dimGrid(numBlocks);
+    dim3 dimBlock(BLOCK_SIZE, 1, 1);
+    dim3 dimGrid(numBlocks, 1, 1);
     if (iterations > 1)
     {
         printf("BLOCK_SIZE: %d\nBYTES_PER_THREAD: %d\n", BLOCK_SIZE, BYTES_PER_THREAD);
