@@ -37,18 +37,7 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
                 int y2 = (y+1)%height;
                 n += gold_world[y1*width+x1] + gold_world[y1*width+x] + gold_world[y1*width+x2] + gold_world[y*width+x1] + gold_world[y*width+x2] + gold_world[y2*width+x1] + gold_world[y2*width+x] + gold_world[y2*width+x2];
 
-                // if (n > 0) {
-                //     printf("n = %d, x = %d, y = %d\n", n, x, y);
-                // }
-
-                // tem[y*height+x] = (n == 3 || (n == 2 && gold_world[y*height+x]));
-                if (n == 3) {
-                    tem[y*width+x] = 1;
-                } else if (n == 2 && gold_world[y*width+x]) {
-                    tem[y*width+x] = 1;
-                } else {
-                    tem[y*width+x] = 0;
-                }
+                tem[y*height+x] = (n == 3 || (n == 2 && gold_world[y*height+x]));
             }
         }
 
@@ -114,5 +103,6 @@ void printMatrix(unsigned *u, int h, int w)
     }
     printf("\n");
 }
+
 
 
