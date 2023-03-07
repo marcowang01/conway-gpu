@@ -11,7 +11,7 @@ extern "C"
 void printMatrix(unsigned *u, int h, int w);
 ////////////////////////////////////////////////////////////////////////////////
 
-#define BLOCK_SIZE 32
+#define BLOCK_SIZE 16
 #define BYTES_PER_THREAD 2
 
 // TODO: change back to using ints for better mem access? 
@@ -19,7 +19,7 @@ void printMatrix(unsigned *u, int h, int w);
 // TODO: compute lookup table and then add later
 
 __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_out,  unsigned char* lookup_table,
-    int const height, int const width)
+    int const width, int const height)
 {
     int tx = threadIdx.x; 
     int bx = blockIdx.x; 
@@ -39,15 +39,15 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         uint yDown = (y + width) % world_size; // yDown: y offset of the cell below
         // 3 integers to hold the 3 rows
         // load in the first byte
-        uint data0 = (uint)d_world_in[yUp + x]  << 16;
-        uint data1 = (uint)d_world_in[y + x]  << 16;
-        uint data2 = (uint)d_world_in[yDown + x]  << 16;
+        uint data0 = (uint)d_world_in[yUp + x]  << 8;
+        uint data1 = (uint)d_world_in[y + x]  << 8;
+        uint data2 = (uint)d_world_in[yDown + x]  << 8;
 
         // load in the second byte
         x = (x + 1) % width; // increment x to the next cell
-        data0 |= (uint) d_world_in[yUp + x] << 8; // the cell to the right and up
-        data1 |= (uint) d_world_in[y + x] << 8; // the cell to the right and down
-        data2 |= (uint) d_world_in[yDown + x] << 8; // the cell to the right and down
+        data0 |= (uint) d_world_in[yUp + x]; // the cell to the right and up
+        data1 |= (uint) d_world_in[y + x]; // the cell to the right and down
+        data2 |= (uint) d_world_in[yDown + x]; // the cell to the right and down
 
         // if (tid == 4) {
         //     printf("\nx = %d, y = %d, yUp = %d, yDown = %d\n", x, y, yUp, yDown);
@@ -75,33 +75,39 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         {
             uint currentState = x; // current cell
             x = (x + 1) % width; // load in the 3rd, 4th, 5th, .... byte
-            data0 |= (uint) d_world_in[yUp + x]; // the cell to the right and up
-            data1 |= (uint) d_world_in[y + x]; // the cell to the right and down
-            data2 |= (uint) d_world_in[yDown + x]; // the cell to the right and down
+            data0 = (data0 << 8) | (uint) d_world_in[yUp + x]; // the cell to the right and up
+            data1 = (data1 << 8) | (uint) d_world_in[y + x]; // the cell to the right and down
+            data2 = (data2 << 8) | (uint) d_world_in[yDown + x]; // the cell to the right and down
+            
+            uint lifeStateHi = ((data0 & 0x1F800) << 1) | ((data1 & 0x1F800) >> 5) | ((data2 & 0x1F800) >> 11);
+			uint lifeStateLo = ((data0 & 0x1F80) << 5) | ((data1 & 0x1F80) >> 1) | ((data2 & 0x1F80) >> 7);
 
-            uint result = 0;
-            for (uint k = 0; k < 8; k++) // loop through each bit of the char
-            {
-                uint neighbours = (data0 & 0x14000) + (data1 & 0x14000) + (data2 & 0x14000);
-                neighbours >>= 14;
-                neighbours = (neighbours & 0x3) + (neighbours >> 2) + ((data0 >> 15) & 0x1u) + ((data2 >> 15) & 0x1u);
+
+            // uint result = 0;
+            // for (uint k = 0; k < 8; k++) // loop through each bit of the char
+            // {
+            //     uint neighbours = (data0 & 0x14000) + (data1 & 0x14000) + (data2 & 0x14000);
+            //     neighbours >>= 14;
+            //     neighbours = (neighbours & 0x3) + (neighbours >> 2) + ((data0 >> 15) & 0x1u) + ((data2 >> 15) & 0x1u);
                 
-                // if (neighbours > 0 && tid == 1)
-                //     printf("\nidx: %d |\t neighbours: %d", j * 8 + k, neighbours);
+            //     // if (neighbours > 0 && tid == 1)
+            //     //     printf("\nidx: %d |\t neighbours: %d", j * 8 + k, neighbours);
 
-                result = result << 1 | (neighbours == 3 || (neighbours == 2 && (data1 & 0x8000u)) ? 1u : 0u);
+            //     result = result << 1 | (neighbours == 3 || (neighbours == 2 && (data1 & 0x8000u)) ? 1u : 0u);
 
-                data0 <<= 1;
-                data1 <<= 1;
-                data2 <<= 1;
-            }
-            d_world_out[currentState + y] = result;
+            //     data0 <<= 1;
+            //     data1 <<= 1;
+            //     data2 <<= 1;
+            // }
+
+            d_world_out[currentState + y] = (lookup_table[lifeStateHi] << 4) | lookup_table[lifeStateLo];
+
         }
     }
 } 
 
 void runConwayKernel(unsigned char** d_world_in, unsigned char** d_world_out, unsigned char* lookup_table,
-    const int height, const int width, int iterations)
+    const int width, const int height, int iterations)
 {   
     // TODO: handle case when things are not divisible by 8
     // may need to pad the matrix with the otherside of the matrix
@@ -121,7 +127,7 @@ void runConwayKernel(unsigned char** d_world_in, unsigned char** d_world_out, un
     for (int i = 0; i < iterations; i++)
     {
         // FIXME: later on can clamp this to 32768 as max number of blocks
-        conway_kernel<<<dimGrid, dimBlock>>>(*d_world_in, *d_world_out, lookup_table, height, width / 8);
+        conway_kernel<<<dimGrid, dimBlock>>>(*d_world_in, *d_world_out, lookup_table, width / 8, height);
         // cudaDeviceSynchronize();
         std::swap(d_world_in, d_world_out);
     }

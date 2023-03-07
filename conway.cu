@@ -13,11 +13,11 @@
   
 #include <conway_kernel.cu>
 
-# define WORLD_WIDTH 32
-# define WORLD_HEIGHT 32
-# define ITERATIONS   10
+# define WORLD_WIDTH 128
+# define WORLD_HEIGHT 128
+# define ITERATIONS 1
 
-# define VERBOSE false   
+# define VERBOSE false
 # define IS_RAND false 
     
 ////////////////////////////////////////////////////////////////////////////////
@@ -37,7 +37,7 @@ extern "C"
 void computeLookupTable(unsigned char* lookup_table, uint dimX, uint dimY);
 
 extern "C" 
-unsigned int compare( const unsigned* reference, unsigned* data, const unsigned int len, const bool verbose);
+unsigned int compare( const unsigned* reference, unsigned* data, const unsigned int len, const bool verbose); 
 
 extern "C" 
 void printMatrix(unsigned *u, int h, int w);
@@ -51,7 +51,7 @@ void bitPerCellEncode(unsigned *in, unsigned char  *out, int width, int height);
 
 extern "C"
 void bitPerCellDecode(unsigned char *in, unsigned *out, int width, int height);  
-////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////// 
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char** argv ) 
@@ -98,7 +98,7 @@ void runTest( int argc, char** argv )
 
     unsigned int world_size = WORLD_WIDTH * WORLD_HEIGHT;
     unsigned int mem_size = sizeof(unsigned) * world_size;
-    unsigned int bit_mem_size = sizeof(char) * (world_size / 8 + 1); // pad with + 1 if not divisible by 8
+    unsigned int bit_mem_size = sizeof(char) * (world_size / 8); // pad with + 1 if not divisible by 8
 
     // randomly initialize the world in host memory
     // int behive[6][2]= {{0,1},{0,2},{1,0},{1,3},{2,1},{2,2}};
@@ -151,7 +151,8 @@ void runTest( int argc, char** argv )
     // printMatrix(temp_world, WORLD_HEIGHT, WORLD_WIDTH); 
     // free(temp_world);
  
-    uint lookup_x = 6; uint lookup_y = 3;
+    uint lookup_x = 6; 
+    uint lookup_y = 3;
     uint lookup_table_size = 1 << (lookup_x * lookup_y) * sizeof(unsigned char);
     unsigned char *h_lookup_table = (unsigned char*) malloc (lookup_table_size); 
     unsigned char *d_lookup_table;
@@ -171,12 +172,12 @@ void runTest( int argc, char** argv )
 
     // **===----------------- Launch the device computation ----------------===**   
     // run once to remove startup overhead
-    runConwayKernel(&d_world_in, &d_world_out, d_lookup_table, WORLD_HEIGHT, WORLD_WIDTH, 1);
+    runConwayKernel(&d_world_in, &d_world_out, d_lookup_table, WORLD_WIDTH, WORLD_HEIGHT, 1);
 
     CUT_SAFE_CALL(cutCreateTimer(&timer));
     cutStartTimer(timer);
     // run the kernel 
-    runConwayKernel(&d_world_in, &d_world_out, d_lookup_table, WORLD_HEIGHT, WORLD_WIDTH, ITERATIONS);
+    runConwayKernel(&d_world_in, &d_world_out, d_lookup_table, WORLD_WIDTH, WORLD_HEIGHT, ITERATIONS);
     CUDA_SAFE_CALL( cudaDeviceSynchronize() );
 
     cutStopTimer(timer);
@@ -223,7 +224,7 @@ void randomInit( unsigned int* world )
 { 
     if (IS_RAND) {
         srand( time(NULL) );
-    } else {
+    } else { 
         srand( 234232 ) ;
     }
     for( unsigned int i = 0; i < WORLD_WIDTH * WORLD_HEIGHT; ++i) 
@@ -248,7 +249,7 @@ void customInit(unsigned int* world, int (*coords)[2], int len)
     // printf("len %d", len);
     for (int i = 0; i < len; i++) {
         if (coords[i][0] >= WORLD_HEIGHT || coords[i][1] >= WORLD_WIDTH) {
-            printf("Error: coordinates out of bounds");
+            printf("Error: coordinates out of bounds\n");
             exit(1);
         }
         world[coords[i][0] * WORLD_WIDTH + coords[i][1]] = 1;

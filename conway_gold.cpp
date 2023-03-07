@@ -42,7 +42,9 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
                     + gold_world[y*width+x1] + gold_world[y*width+x2] + gold_world[y2*width+x1] 
                     + gold_world[y2*width+x] + gold_world[y2*width+x2];
 
-                tem[y*height+x] = (n == 3 || (n == 2 && gold_world[y*height+x]));
+
+                tem[y*width+x] = (n == 3 || (n == 2 && gold_world[y*width+x]));
+
             }
         }
 
@@ -51,7 +53,6 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
                 gold_world[y*width+x] = tem[y*width+x];
             }
         }
-        // print_matrix(gold_world, height, width);
 
         free(tem);
     }
@@ -72,7 +73,7 @@ void computeLookupTable(unsigned char* lookup_table, uint dimX, uint dimY) {
             uint n = 0; // number of neighbors
             for (uint x = 0; x < 3; ++x) {
 				for (uint y = 0; y < 3; ++y) {
-					n += getCellState(x, y, dimX, dimY, i);
+					n += getCellState(x + cell, y, dimX, dimY, i);
                 }
 			}
             uint curState = getCellState(1 + cell, 1, dimX, dimY, i);
