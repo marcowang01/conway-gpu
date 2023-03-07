@@ -11,12 +11,15 @@ extern "C"
 void printMatrix(unsigned *u, int h, int w);
 ////////////////////////////////////////////////////////////////////////////////
 
-#define BLOCK_SIZE 256 
-#define BYTES_PER_THREAD 16 
+#define BLOCK_SIZE 32
+#define BYTES_PER_THREAD 2
 
-// TODO: change to using bytes instead of ints
+// TODO: change back to using ints for better mem access? 
+// TODO: change to using share memory
+// TODO: compute lookup table and then add later
 
-__global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_out, int height, int width)
+__global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_out,  unsigned char* lookup_table,
+    int const height, int const width)
 {
     int tx = threadIdx.x; 
     int bx = blockIdx.x; 
@@ -97,7 +100,8 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
     }
 } 
 
-void runConwayKernel(unsigned char** d_world_in, unsigned char** d_world_out, int height, int width, int iterations)
+void runConwayKernel(unsigned char** d_world_in, unsigned char** d_world_out, unsigned char* lookup_table,
+    const int height, const int width, int iterations)
 {   
     // TODO: handle case when things are not divisible by 8
     // may need to pad the matrix with the otherside of the matrix
@@ -112,12 +116,12 @@ void runConwayKernel(unsigned char** d_world_in, unsigned char** d_world_out, in
     dim3 dimGrid(numBlocks, 1, 1);
     if (iterations > 1)
     {
-        printf("BLOCK_SIZE: %d\nBYTES_PER_THREAD: %d\n", BLOCK_SIZE, BYTES_PER_THREAD);
+        printf(" - block size:\t\t%d\n - bytes per thread:\t%d\n", BLOCK_SIZE, BYTES_PER_THREAD);
     }
     for (int i = 0; i < iterations; i++)
     {
         // FIXME: later on can clamp this to 32768 as max number of blocks
-        conway_kernel<<<dimGrid, dimBlock>>>(*d_world_in, *d_world_out, height, width / 8);
+        conway_kernel<<<dimGrid, dimBlock>>>(*d_world_in, *d_world_out, lookup_table, height, width / 8);
         // cudaDeviceSynchronize();
         std::swap(d_world_in, d_world_out);
     }

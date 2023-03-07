@@ -7,6 +7,9 @@
 extern "C" 
 void computeGoldSeq(  unsigned* gold_world, unsigned* h_world, int width, int height, int iterations);
 
+extern "C"
+void computeLookupTable(unsigned char* lookup_table, uint dimX, uint dimY);
+
 extern "C" 
 unsigned int compare( const unsigned* reference, unsigned* data, const unsigned int len, const bool verbose);
 
@@ -36,8 +39,8 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
                 int y1 = (y-1+height)%height;
                 int y2 = (y+1)%height;
                 n += gold_world[y1*width+x1] + gold_world[y1*width+x] + gold_world[y1*width+x2] 
-                + gold_world[y*width+x1] + gold_world[y*width+x2] + gold_world[y2*width+x1] 
-                + gold_world[y2*width+x] + gold_world[y2*width+x2];
+                    + gold_world[y*width+x1] + gold_world[y*width+x2] + gold_world[y2*width+x1] 
+                    + gold_world[y2*width+x] + gold_world[y2*width+x2];
 
                 tem[y*height+x] = (n == 3 || (n == 2 && gold_world[y*height+x]));
             }
@@ -53,6 +56,32 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
         free(tem);
     }
 }    
+
+// lookup table for 6 x 3 area --> map to 4 bits
+// total lookup table size ~ 256kB
+
+inline uint getCellState(uint x, uint y, uint dimX, uint dimY, uint key) {
+    uint index = y * dimX + x;
+    return (key >> ((dimY * dimX - 1) - index)) & 0x1;
+}
+
+void computeLookupTable(unsigned char* lookup_table, uint dimX, uint dimY) {
+    uint size = 1 << 18;
+    for (uint i = 0; i < size ; i++) {
+        for (uint cell = 0; cell < 4; cell++) {
+            uint n = 0; // number of neighbors
+            for (uint x = 0; x < 3; ++x) {
+				for (uint y = 0; y < 3; ++y) {
+					n += getCellState(x, y, dimX, dimY, i);
+                }
+			}
+            uint curState = getCellState(1 + cell, 1, dimX, dimY, i);
+            n -= curState;
+
+            lookup_table[i] |= (n == 3 || (n == 2 && curState)) << (3 - cell);
+        }
+    }
+}
 
 unsigned int compare( const unsigned* reference, unsigned* data, const unsigned int len, const bool verbose)
 {

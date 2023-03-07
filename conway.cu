@@ -10,19 +10,19 @@
  
 #include <GL/glew.h>    
 #include <GL/glut.h> 
- 
+  
 #include <conway_kernel.cu>
 
-# define WORLD_WIDTH 16384 
-# define WORLD_HEIGHT 16384  
-# define ITERATIONS   100
- 
-# define VERBOSE false  
+# define WORLD_WIDTH 32
+# define WORLD_HEIGHT 32
+# define ITERATIONS   10
+
+# define VERBOSE false   
 # define IS_RAND false 
     
 ////////////////////////////////////////////////////////////////////////////////
 // main test routine    
-void init(); 
+void init();  
 void display();
 void runTest( int argc, char** argv ); 
 
@@ -33,10 +33,13 @@ void customInit(unsigned int* world, int (*coords)[2], int len);
 extern "C"  
 void computeGoldSeq(  unsigned* reference, unsigned* idata, int width, int height, int iterations); 
 
+extern "C"
+void computeLookupTable(unsigned char* lookup_table, uint dimX, uint dimY);
+
 extern "C" 
 unsigned int compare( const unsigned* reference, unsigned* data, const unsigned int len, const bool verbose);
 
-extern "C"
+extern "C" 
 void printMatrix(unsigned *u, int h, int w);
 //////////////////////////////////////////////////////////////////////////////// 
 // bit_utils.cpp   
@@ -48,13 +51,11 @@ void bitPerCellEncode(unsigned *in, unsigned char  *out, int width, int height);
 
 extern "C"
 void bitPerCellDecode(unsigned char *in, unsigned *out, int width, int height);  
-
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char** argv ) 
 {
-
     // glutInit(&argc, argv); 
     // glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
     // glutInitWindowSize(WORLD_WIDTH, WORLD_HEIGHT);
@@ -107,7 +108,7 @@ void runTest( int argc, char** argv )
     // int bigOscillator[92][2] = {{1,0},{2,0},{22,0},{23,0},{1,1},{2,1},{21,1},{23,1},{24,1},{0,2},{1,2},{2,2},{20,2},{21,2},{24,2},{25,2},{0,3},{1,3},{2,3},{20,3},{22,3},{24,3},{25,3},{0,4},{1,4},{2,4},{3,4},{4,4},{19,4},{20,4},{22,4},{24,4},{25,4},{26,4},{4,5},{19,5},{20,5},{4,6},{5,6},{6,6},{18,6},{19,6},{6,7},{7,7},{8,7},{16,7},{17,7},{18,7},{8,8},{9,8},{15,8},{16,8},{9,9},{10,9},{14,9},{15,9},{10,10},{11,10},{12,10},{13,10}};
     unsigned *h_world = (unsigned*) malloc (mem_size);
     customInit(h_world, pulsar, 48);
-    randomInit(h_world); 
+    // randomInit(h_world); 
 
     if (VERBOSE) {
         printf("initial world: \n");
@@ -122,9 +123,9 @@ void runTest( int argc, char** argv )
     cutStartTimer(timer); 
     computeGoldSeq(gold_world, h_world, WORLD_WIDTH, WORLD_HEIGHT, ITERATIONS);
     cutStopTimer(timer);
-    printf("Processing %d x %d world for %d iterations\n", WORLD_WIDTH, WORLD_HEIGHT, ITERATIONS);
-    printf("**===-------------------------------------------------===**\n");
-    printf("HOST CPU Processing time: %f (ms)\n", cutGetTimerValue(timer));
+    
+    printf("\033[1;33mProcessing %d x %d world for %d iterations\033[0m\n", WORLD_WIDTH, WORLD_HEIGHT, ITERATIONS);
+    // printf("HOST CPU Processing time: %f (ms)\n", cutGetTimerValue(timer));
     
     if (VERBOSE) {
         printf("cpu computed world: \n");
@@ -137,6 +138,7 @@ void runTest( int argc, char** argv )
     // **===----------------- Allocate device data structures -----------===**
     unsigned char *d_world_in; 
     unsigned char *d_world_out;
+    
 
     // encode the world into a bit array
     unsigned char *h_world_bits = (unsigned char*) malloc (bit_mem_size);
@@ -146,30 +148,45 @@ void runTest( int argc, char** argv )
     // bitPerCellDecode(h_world_bits, temp_world, WORLD_WIDTH, WORLD_HEIGHT);
     // printf("bits world [0]:  %d\n", h_world_bits[0]); // 64 for glider
     // printf("bits world [1]:  %d\n", h_world_bits[1]); // 142 for glider
-    // printMatrix(temp_world, WORLD_HEIGHT, WORLD_WIDTH);
+    // printMatrix(temp_world, WORLD_HEIGHT, WORLD_WIDTH); 
     // free(temp_world);
+ 
+    uint lookup_x = 6; uint lookup_y = 3;
+    uint lookup_table_size = 1 << (lookup_x * lookup_y) * sizeof(unsigned char);
+    unsigned char *h_lookup_table = (unsigned char*) malloc (lookup_table_size); 
+    unsigned char *d_lookup_table;
+
+    computeLookupTable(h_lookup_table, lookup_x, lookup_y);
+    CUDA_SAFE_CALL(cudaMalloc((void**) &d_lookup_table, lookup_table_size));
+    CUDA_SAFE_CALL(cudaMemcpy(d_lookup_table, h_lookup_table, lookup_table_size, cudaMemcpyHostToDevice));
+
+    printf(" - lookup table:\t%d x %d  (approx. %d kB)\n", lookup_x, lookup_y, lookup_table_size/1024);
 
     CUDA_SAFE_CALL(cudaMalloc((void**) &d_world_in, bit_mem_size));
-    CUDA_SAFE_CALL(cudaMalloc((void**) &d_world_out, bit_mem_size));
+    CUDA_SAFE_CALL(cudaMalloc((void**) &d_world_out, bit_mem_size)); 
     // copy host memory to device input array
     CUDA_SAFE_CALL(cudaMemcpy(d_world_in, h_world_bits, bit_mem_size, cudaMemcpyHostToDevice));
     // initialize all the other device arrays to be safe
     CUDA_SAFE_CALL(cudaMemcpy(d_world_out, h_world_bits, bit_mem_size, cudaMemcpyHostToDevice) );
 
-    // **===----------------- Launch the device computation ----------------===** 
+    // **===----------------- Launch the device computation ----------------===**   
     // run once to remove startup overhead
-    runConwayKernel(&d_world_in, &d_world_out, WORLD_HEIGHT, WORLD_WIDTH, 1);
+    runConwayKernel(&d_world_in, &d_world_out, d_lookup_table, WORLD_HEIGHT, WORLD_WIDTH, 1);
 
     CUT_SAFE_CALL(cutCreateTimer(&timer));
     cutStartTimer(timer);
     // run the kernel 
-    runConwayKernel(&d_world_in, &d_world_out, WORLD_HEIGHT, WORLD_WIDTH, ITERATIONS);
+    runConwayKernel(&d_world_in, &d_world_out, d_lookup_table, WORLD_HEIGHT, WORLD_WIDTH, ITERATIONS);
     CUDA_SAFE_CALL( cudaDeviceSynchronize() );
 
     cutStopTimer(timer);
-    printf("CUDA GPU Processing time: %f (ms)\n", cutGetTimerValue(timer));
     device_time = cutGetTimerValue(timer);  
-    printf("Speedup: %fX\n", host_time/device_time);     
+    printf("**===-------------------------------------------------===**\n");
+    printf("\tHOST CPU Processing time: %f (ms)\n", host_time);
+    printf("\tCUDA GPU Processing time: %f (ms)\n", device_time);
+    printf("\tSpeedup: %fX\n", host_time/device_time);     
+    printf("**===-------------------------------------------------===**\n");
+
     
     // **===-------- Deallocate data structure  -----------===**
     if (ITERATIONS % 2 == 0) {
@@ -177,7 +194,7 @@ void runTest( int argc, char** argv )
     } else {
         CUDA_SAFE_CALL(cudaMemcpy(h_world_bits, d_world_out, bit_mem_size, cudaMemcpyDeviceToHost));
     }
-
+ 
     // decode the world from the bit array
     bitPerCellDecode(h_world_bits, h_world, WORLD_WIDTH, WORLD_HEIGHT);
     
@@ -187,7 +204,7 @@ void runTest( int argc, char** argv )
     }
  
     unsigned int result = compare(gold_world, h_world, world_size, VERBOSE);
-    printf("Test %s\n", (1 == result) ? "PASSED" : "FAILED");  
+    printf("Test %s\n", (1 == result) ? "\033[1;32mPASSED \033[0m" : "\033[1;31mFAILED \033[0m");  
 
     if (VERBOSE && result == 0){
         printf("world with errors: \n");
