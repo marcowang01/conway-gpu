@@ -2,22 +2,22 @@
 #  define NOMINMAX 
 #endif
 
-#include <stdlib.h>
+#include <stdlib.h> 
 #include <stdio.h>    
-#include <string.h>  
+#include <string.h>   
 #include <math.h>    
 #include <cutil.h>  
- 
+  
 #include <GL/glew.h>    
-#include <GL/glut.h> 
+#include <GL/glut.h>   
+  
+#include <conway_kernel.cu>  
  
-#include <conway_kernel.cu>
-
-# define WORLD_WIDTH 16384 
-# define WORLD_HEIGHT 16384  
-# define ITERATIONS   100
+# define WORLD_WIDTH 16384    
+# define WORLD_HEIGHT WORLD_WIDTH     
+# define ITERATIONS   100   
  
-# define VERBOSE false  
+# define VERBOSE false   
 # define IS_RAND false 
     
 ////////////////////////////////////////////////////////////////////////////////

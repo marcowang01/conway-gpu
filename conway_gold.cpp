@@ -13,6 +13,8 @@ unsigned int compare( const unsigned* reference, unsigned* data, const unsigned 
 extern "C"
 void printMatrix(unsigned *u, int h, int w);
 
+#define DO_CPU_COMPUTE 0
+
 ////////////////////////////////////////////////////////////////////////////////
 //! Compute reference data set
 ////////////////////////////////////////////////////////////////////////////////
@@ -25,33 +27,36 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
             gold_world[y*width+x] = h_world[y*width+x];
         }
     }
-    for (int i = 0; i < iterations; i++) {
+    if (DO_CPU_COMPUTE) {
+        for (int i = 0; i < iterations; i++) {
         
-        unsigned* tem = (unsigned*) malloc(width*height*sizeof(unsigned));
-        for(int y = 0; y < height; y++) {
-            for(int x = 0; x < width; x++) {
-                int n = 0; // number of neighbors
-                int x1 = (x-1+width)%width;
-                int x2 = (x+1)%width;
-                int y1 = (y-1+height)%height;
-                int y2 = (y+1)%height;
-                n += gold_world[y1*width+x1] + gold_world[y1*width+x] + gold_world[y1*width+x2] 
-                + gold_world[y*width+x1] + gold_world[y*width+x2] + gold_world[y2*width+x1] 
-                + gold_world[y2*width+x] + gold_world[y2*width+x2];
+            unsigned* tem = (unsigned*) malloc(width*height*sizeof(unsigned));
+            for(int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    int n = 0; // number of neighbors
+                    int x1 = (x-1+width)%width;
+                    int x2 = (x+1)%width;
+                    int y1 = (y-1+height)%height;
+                    int y2 = (y+1)%height;
+                    n += gold_world[y1*width+x1] + gold_world[y1*width+x] + gold_world[y1*width+x2] 
+                    + gold_world[y*width+x1] + gold_world[y*width+x2] + gold_world[y2*width+x1] 
+                    + gold_world[y2*width+x] + gold_world[y2*width+x2];
 
-                tem[y*height+x] = (n == 3 || (n == 2 && gold_world[y*height+x]));
+                    tem[y*height+x] = (n == 3 || (n == 2 && gold_world[y*height+x]));
+                }
             }
-        }
 
-        for(int y = 0; y < height; y++) {
-            for(int x = 0; x < width; x++) {
-                gold_world[y*width+x] = tem[y*width+x];
+            for(int y = 0; y < height; y++) {
+                for(int x = 0; x < width; x++) {
+                    gold_world[y*width+x] = tem[y*width+x];
+                }
             }
-        }
-        // print_matrix(gold_world, height, width);
+            // print_matrix(gold_world, height, width);
 
-        free(tem);
+            free(tem);
+        }
     }
+   
 }    
 
 unsigned int compare( const unsigned* reference, unsigned* data, const unsigned int len, const bool verbose)
