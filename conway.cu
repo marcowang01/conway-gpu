@@ -22,18 +22,18 @@
         256 x 64
     fails for:
         4096 x 1024 
-        2048 x 2048 .. 32
+        2048 x 2048 .. 32 
         4096 x 512 ... 16
         1024 x 1024 ... 64
-        256 x 256
+        256 x 256 
 */
-
-# define WORLD_WIDTH 32
-# define WORLD_HEIGHT 2048
-# define ITERATIONS 2
-
+ 
+# define WORLD_WIDTH 8192   
+# define WORLD_HEIGHT WORLD_WIDTH 
+# define ITERATIONS 1000
+ 
 # define VERBOSE false
-# define IS_RAND false 
+# define IS_RAND false  
     
 //////////////////////////////////////////////////////////////////////////////// 
 // main test routine    
