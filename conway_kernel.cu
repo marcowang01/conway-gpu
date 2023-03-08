@@ -11,7 +11,7 @@ extern "C"
 void printMatrix(unsigned *u, int h, int w);
 ////////////////////////////////////////////////////////////////////////////////
 
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 8
 #define BYTES_PER_THREAD 2
 
 // TODO: change back to using ints for better mem access? 
@@ -129,7 +129,10 @@ void runConwayKernel(unsigned char** d_world_in, unsigned char** d_world_out, un
         // FIXME: later on can clamp this to 32768 as max number of blocks
         conway_kernel<<<dimGrid, dimBlock>>>(*d_world_in, *d_world_out, lookup_table, width / 8, height);
         // cudaDeviceSynchronize();
-        std::swap(d_world_in, d_world_out);
+        // std::swap(d_world_in, d_world_out);
+        unsigned char** temp = d_world_in;
+        d_world_in = d_world_out;
+        d_world_out = temp;
     }
 }
 
