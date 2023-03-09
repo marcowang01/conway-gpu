@@ -29,14 +29,14 @@
         256 x 256  
 */
  
-// questions
+// questions 
 // 1. why not bigger worlds?
 // 2. 
   
-# define WORLD_WIDTH 64
-# define WORLD_HEIGHT 64
+# define WORLD_WIDTH 4096
+# define WORLD_HEIGHT 4096 
 # define ITERATIONS 2
-      
+
 # define VERBOSE false  
 # define IS_RAND true     
     
@@ -76,6 +76,12 @@ void bitPerCellDecode(unsigned char *in, unsigned *out, int width, int height);
 ////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char** argv ) 
 {
+    // glutDisplayFunc(displayCallback);
+    // glutKeyboardFunc(keyboardCallback);
+    // glutMouseFunc(mouseCallback);
+    // glutMotionFunc(motionCallback);
+    // glutReshapeFunc(reshapeCallback);
+
     // glutInit(&argc, argv); 
     // glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
     // glutInitWindowSize(WORLD_WIDTH, WORLD_HEIGHT);
