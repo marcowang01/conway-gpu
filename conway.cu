@@ -25,20 +25,25 @@
         2048 x 2048 .. 32 
         4096 x 512 ... 16
         1024 x 1024 ... 64
-        256 x 256 
+        512 x 512
+        256 x 256  
 */
  
-# define WORLD_WIDTH 8192   
-# define WORLD_HEIGHT WORLD_WIDTH 
-# define ITERATIONS 1000
- 
-# define VERBOSE false
-# define IS_RAND false  
+// questions
+// 1. why not bigger worlds?
+// 2. 
+  
+# define WORLD_WIDTH 64
+# define WORLD_HEIGHT 64
+# define ITERATIONS 2
+      
+# define VERBOSE false  
+# define IS_RAND true     
     
 //////////////////////////////////////////////////////////////////////////////// 
 // main test routine    
-void init();   
-void display();
+void init();    
+void display(); 
 void runTest( int argc, char** argv );  
 
 void randomInit( unsigned int* world );
@@ -119,10 +124,10 @@ void runTest( int argc, char** argv )
     // int behive[6][2]= {{0,1},{0,2},{1,0},{1,3},{2,1},{2,2}};
     // int glider[5][2]= {{0,1},{1,2},{2,0},{2,1},{2,2}};
     // int pulsar[48][2] = {{2,4}, {2,5}, {2,6}, {2,10}, {2,11}, {2,12}, {4,2}, {4,7}, {4,9}, {4,14}, {5,2}, {5,7}, {5,9}, {5,14}, {6,2}, {6,7}, {6,9}, {6,14}, {7,4}, {7,5}, {7,6}, {7,10}, {7,11}, {7,12}, {9,4}, {9,5}, {9,6}, {9,10}, {9,11}, {9,12}, {10,2}, {10,7}, {10,9}, {10,14}, {11,2}, {11,7}, {11,9}, {11,14}, {12,2}, {12,7}, {12,9}, {12,14}, {14,4}, {14,5}, {14,6}, {14,10}, {14,11}, {14,12}};
-    // int glider_gun[36][2] = {{0,4},{0,5},{1,4},{1,5},{10,4},{10,5},{10,6},{11,3},{11,7},{12,2},{12,8},{13,2},{13,8},{14,5},{15,3},{15,7},{16,4},{16,5},{16,6},{17,5},{20,2},{20,3},{20,4},{21,2},{21,3},{21,4},{22,1},{22,5},{24,0},{24,1},{24,5},{24,6},{34,2},{34,3},{35,2},{35,3}};
+    int glider_gun[36][2] = {{0,4},{0,5},{1,4},{1,5},{10,4},{10,5},{10,6},{11,3},{11,7},{12,2},{12,8},{13,2},{13,8},{14,5},{15,3},{15,7},{16,4},{16,5},{16,6},{17,5},{20,2},{20,3},{20,4},{21,2},{21,3},{21,4},{22,1},{22,5},{24,0},{24,1},{24,5},{24,6},{34,2},{34,3},{35,2},{35,3}};
     // int bigOscillator[92][2] = {{1,0},{2,0},{22,0},{23,0},{1,1},{2,1},{21,1},{23,1},{24,1},{0,2},{1,2},{2,2},{20,2},{21,2},{24,2},{25,2},{0,3},{1,3},{2,3},{20,3},{22,3},{24,3},{25,3},{0,4},{1,4},{2,4},{3,4},{4,4},{19,4},{20,4},{22,4},{24,4},{25,4},{26,4},{4,5},{19,5},{20,5},{4,6},{5,6},{6,6},{18,6},{19,6},{6,7},{7,7},{8,7},{16,7},{17,7},{18,7},{8,8},{9,8},{15,8},{16,8},{9,9},{10,9},{14,9},{15,9},{10,10},{11,10},{12,10},{13,10}};
     unsigned *h_world = (unsigned*) malloc (mem_size);
-    // customInit(h_world, pulsar, 48);
+    customInit(h_world, glider_gun, 36); 
     randomInit(h_world); 
 
     if (VERBOSE) {
@@ -138,10 +143,10 @@ void runTest( int argc, char** argv )
     cutStartTimer(timer); 
     computeGoldSeq(gold_world, h_world, WORLD_WIDTH, WORLD_HEIGHT, ITERATIONS);
     cutStopTimer(timer);
-    
+     
     printf("\033[1;33mProcessing %d x %d world for %d iterations\033[0m\n", WORLD_WIDTH, WORLD_HEIGHT, ITERATIONS);
     // printf("HOST CPU Processing time: %f (ms)\n", cutGetTimerValue(timer));
-    
+      
     if (VERBOSE) {
         printf("cpu computed world: \n");
         printMatrix(gold_world, WORLD_HEIGHT, WORLD_WIDTH); 
@@ -163,7 +168,7 @@ void runTest( int argc, char** argv )
     // bitPerCellDecode(h_world_bits, temp_world, WORLD_WIDTH, WORLD_HEIGHT);
     // printf("bits world [0]:  %d\n", h_world_bits[0]); // 64 for glider
     // printf("bits world [1]:  %d\n", h_world_bits[1]); // 142 for glider
-    // printMatrix(temp_world, WORLD_HEIGHT, WORLD_WIDTH); 
+    // printMatrix(temp_world, WORLD_HEIGHT, WORLD_WIDTH);  
     // free(temp_world);
  
     uint lookup_x = 6; 
@@ -205,15 +210,11 @@ void runTest( int argc, char** argv )
 
     
     // **===-------- Deallocate data structure  -----------===**
-    if (ITERATIONS % 2 == 0) {
-        CUDA_SAFE_CALL(cudaMemcpy(h_world_bits, d_world_in, bit_mem_size, cudaMemcpyDeviceToHost));
-    } else {
-        CUDA_SAFE_CALL(cudaMemcpy(h_world_bits, d_world_out, bit_mem_size, cudaMemcpyDeviceToHost));
-    }
+    CUDA_SAFE_CALL(cudaMemcpy(h_world_bits, d_world_out, bit_mem_size, cudaMemcpyDeviceToHost));
  
     // decode the world from the bit array
     bitPerCellDecode(h_world_bits, h_world, WORLD_WIDTH, WORLD_HEIGHT);
-    
+     
     if (VERBOSE) {
         printf("gpu computed world: \n");
         printMatrix(h_world, WORLD_HEIGHT, WORLD_WIDTH);  
