@@ -12,7 +12,7 @@ void printMatrix(unsigned *u, int h, int w);
 ////////////////////////////////////////////////////////////////////////////////
 # define WORLD_WIDTH 4096
 # define WORLD_HEIGHT 4096 
-# define ITERATIONS 2
+# define ITERATIONS 100
       
 # define VERBOSE false  
 # define IS_RAND false     
@@ -68,6 +68,7 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         uint y = (i / width) * width; // y: y offest of the cell
         uint yUp = (y + world_size - width) % world_size; // yUp: y offset of the cell above
         uint yDown = (y + width) % world_size; // yDown: y offset of the cell below
+        uint x_next = (x + 1) % width; // x_next: x offset current cell
         // 3 integers to hold the 3 rows
         // load in the first byte
         // uint data0 = (uint)d_world_in[yUp + x]  << 8;
@@ -78,45 +79,34 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         uint sh_y = (tx * 2 / sh_width) * sh_width;
         uint sh_yUp = (sh_y + sh_size - sh_width) % sh_size;
         uint sh_yDown = (sh_y + sh_width) % sh_size;
+        uint sh_x_next = (sh_x + 1) % sh_width;
 
         uint data0;
-        uint data1 = (uint)sh_world[sh_x + sh_y] << 8;
+        uint data1 = (uint)sh_world[sh_x + sh_y] << 8 | sh_world[sh_x_next + sh_y];
         uint data2;
         // uint data22 = (uint)d_world_in[yDown + x]  << 8;
 
-        if (tx <= sh_width / 2) {
-            data0 = (uint) d_world_in[yUp + x]  << 8;
+        // can't use shared memory for the top and bottom edge of the block
+        if (tx <= sh_width) { // works if do sh_width / 2 here but make sure its 32 for divergence
+            data0 = (uint) d_world_in[yUp + x]  << 8 |  d_world_in[yUp + x_next];
         } else {
-            data0 = (uint) sh_world[sh_x + sh_yUp] << 8;
+            data0 = (uint) sh_world[sh_x + sh_yUp] << 8 |  sh_world[sh_x_next + sh_yUp];
         }
 
-        if (tx >= BLOCK_SIZE - sh_width / 2) {
-            data2 = (uint) d_world_in[yDown + x]  << 8;
+        if (tx >= BLOCK_SIZE - sh_width) { // works if do / 2 here but make sure its 32 for divergence
+            data2 = (uint) d_world_in[yDown + x]  << 8 |  d_world_in[yDown + x_next];
         } else {
-            data2 = (uint) sh_world[sh_x + sh_yDown] << 8;
+            data2 = (uint) sh_world[sh_x + sh_yDown] << 8 | sh_world[sh_x_next + sh_yDown];
         }
+
+        x = x_next;
+        sh_x = sh_x_next;
 
         // load in the second byte
-        x = (x + 1) % width; // increment x to the next cell
+        // x = (x + 1) % width; // increment x to the next cell
         // data0 |= (uint) d_world_in[yUp + x]; // the cell to the right and up
         // data1 |= (uint) d_world_in[y + x]; // the cell to the right and down
         // data2 |= (uint) d_world_in[yDown + x]; // the cell to the right and down
-
-        sh_x = (sh_x + 1) % sh_width;
-        data1 |= (uint) sh_world[sh_x + sh_y];
-        // uint data22 = data2 | (uint) d_world_in[yDown + x]; 
-
-        if (tx <= sh_width / 2) {
-            data0 |= (uint) d_world_in[yUp + x];
-        } else {
-            data0 |= (uint) sh_world[sh_x + sh_yUp];
-        }
-        
-        if (tx >= BLOCK_SIZE - sh_width / 2) {
-            data2 |= (uint) d_world_in[yDown + x];
-        } else {
-            data2 |= (uint) sh_world[sh_x + sh_yDown];
-        }
 
         // if (tid < 256) {
         //     if (data22 != data2) {
@@ -137,7 +127,7 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         //     }
         // }
 
-        for (uint j = 0; j < BYTES_PER_THREAD; j++)
+        for (uint j = 0; j < BYTES_PER_THREAD - 2; j++)
         {
             uint currentState = x; // current cell
             x = (x + 1) % width; // load in the 3rd, 4th, 5th, .... byte
@@ -200,6 +190,59 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
             // }
 
         }
+
+        uint currentState = x; // current cell
+        x = (x + 1) % width; // load in the 3rd, 4th, 5th, .... byte
+        sh_x = (sh_x + 1) % width;
+        // data0 = (data0 << 8) | (uint) d_world_in[yUp + x]; // the cell to the right and up
+        data1 = (data1 << 8) | (uint) sh_world[sh_y + sh_x]; // the cell to the right and down
+        // data2 = (data2 << 8) | (uint) d_world_in[yDown + x]; // the cell to the right and down
+
+        if (tx <= sh_width) { // works if do sh_width / 2 here but make sure its 32 for divergence
+            data0 = (data0 << 8) | (uint) d_world_in[yUp + x];
+        } else {
+            data0 = (data0 << 8) | (uint) sh_world[sh_x + sh_yUp];
+        }
+        
+
+        if (tx >= BLOCK_SIZE - sh_width) { // works if do / 2 here but make sure its 32 for divergence
+            data2 = (data2 << 8) | (uint) d_world_in[yDown + x];
+        } else {
+            data2 = (data2 << 8) | (uint) sh_world[sh_yDown + sh_x];
+        }
+        
+        // encodes 6 * 3 block into one 18 bit number to pass in as a key to the lookup table
+        uint HighFourBitStates = ((data0 & 0x1F800) << 1) | ((data1 & 0x1F800) >> 5) | ((data2 & 0x1F800) >> 11);
+        uint LowFourBitStates = ((data0 & 0x1F80) << 5) | ((data1 & 0x1F80) >> 1) | ((data2 & 0x1F80) >> 7);
+
+        d_world_out[currentState + y] = (lookup_table[HighFourBitStates] << 4) | lookup_table[LowFourBitStates];
+        
+
+        currentState = x; // current cell
+        x = (x + 1) % width; // load in the 3rd, 4th, 5th, .... byte
+        sh_x = (sh_x + 1) % sh_width;
+        // data0 = (data0 << 8) | (uint) d_world_in[yUp + x]; // the cell to the right and up
+        data1 = (data1 << 8) | (uint) sh_world[sh_y + sh_x]; // the cell to the right and down
+        // data2 = (data2 << 8) | (uint) d_world_in[yDown + x]; // the cell to the right and down
+
+        if (tx <= sh_width) { // works if do sh_width / 2 here but make sure its 32 for divergence
+            data0 = (data0 << 8) | (uint) d_world_in[yUp + x];
+        } else {
+            data0 = (data0 << 8) | (uint) sh_world[sh_x + sh_yUp];
+        }
+        
+
+        if (tx >= BLOCK_SIZE - sh_width) { // works if do / 2 here but make sure its 32 for divergence
+            data2 = (data2 << 8) | (uint) d_world_in[yDown + x];
+        } else {
+            data2 = (data2 << 8) | (uint) sh_world[sh_yDown + sh_x];
+        }
+        
+        // encodes 6 * 3 block into one 18 bit number to pass in as a key to the lookup table
+        HighFourBitStates = ((data0 & 0x1F800) << 1) | ((data1 & 0x1F800) >> 5) | ((data2 & 0x1F800) >> 11);
+        LowFourBitStates = ((data0 & 0x1F80) << 5) | ((data1 & 0x1F80) >> 1) | ((data2 & 0x1F80) >> 7);
+
+        d_world_out[currentState + y] = (lookup_table[HighFourBitStates] << 4) | lookup_table[LowFourBitStates];
     }
 } 
 
