@@ -32,14 +32,7 @@
 // questions
 // 1. why not bigger worlds?
 // 2. 
-  
-# define WORLD_WIDTH 64
-# define WORLD_HEIGHT 64
-# define ITERATIONS 2
-      
-# define VERBOSE false  
-# define IS_RAND true     
-    
+
 //////////////////////////////////////////////////////////////////////////////// 
 // main test routine    
 void init();    
@@ -113,7 +106,7 @@ void display()
 //////////////////////////////////////////////////////////////////////////////// 
 void runTest( int argc, char** argv )
 {
-    float device_time; 
+    float device_time;
     float host_time;
 
     unsigned int world_size = WORLD_WIDTH * WORLD_HEIGHT;
@@ -149,7 +142,7 @@ void runTest( int argc, char** argv )
       
     if (VERBOSE) {
         printf("cpu computed world: \n");
-        printMatrix(gold_world, WORLD_HEIGHT, WORLD_WIDTH); 
+        printMatrix(gold_world, WORLD_HEIGHT, WORLD_WIDTH);  
     }
 
     host_time = cutGetTimerValue(timer);
@@ -192,7 +185,8 @@ void runTest( int argc, char** argv )
 
     // **===----------------- Launch the device computation ----------------===**   
     // run once to remove startup overhead
-    runConwayKernel(&d_world_in, &d_world_out, d_lookup_table, WORLD_WIDTH, WORLD_HEIGHT, 1);
+    // ! remeber to uncomment
+    // runConwayKernel(&d_world_in, &d_world_out, d_lookup_table, WORLD_WIDTH, WORLD_HEIGHT, 1);
 
     CUT_SAFE_CALL(cutCreateTimer(&timer));
     cutStartTimer(timer);
@@ -213,7 +207,7 @@ void runTest( int argc, char** argv )
     CUDA_SAFE_CALL(cudaMemcpy(h_world_bits, d_world_out, bit_mem_size, cudaMemcpyDeviceToHost));
  
     // decode the world from the bit array
-    bitPerCellDecode(h_world_bits, h_world, WORLD_WIDTH, WORLD_HEIGHT);
+    bitPerCellDecode(h_world_bits, h_world_out, WORLD_WIDTH, WORLD_HEIGHT);
      
     if (VERBOSE) {
         printf("gpu computed world: \n");

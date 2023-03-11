@@ -10,13 +10,23 @@ void printBinary(unsigned n);
 extern "C" 
 void printMatrix(unsigned *u, int h, int w);
 ////////////////////////////////////////////////////////////////////////////////
+# define WORLD_WIDTH 4096
+# define WORLD_HEIGHT 4096 
+# define ITERATIONS 3
+      
+# define VERBOSE false  
+# define IS_RAND false     
 
-#define BLOCK_SIZE 2
-#define BYTES_PER_THREAD 1
+#define BLOCK_SIZE 256
+#define BYTES_PER_THREAD 16
 
-// TODO: change back to using ints for better mem access? 
-// TODO: change to using share memory
-// TODO: compute lookup table and then add later
+// TODO: shared mem edges
+// TODO: 64 word int
+// TODO: 2 layers + 4 * 6 lookup
+
+// __device__ inline int dToShIndex(int x) {
+//     return (x - blockIdx.x * BLOCK_SIZE);
+// }
 
 __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_out,  unsigned char* lookup_table,
     int const width, int const height)
@@ -26,6 +36,17 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
 
     int world_size = height * width;
     int tid = bx * blockDim.x + tx;
+
+    int sh_size = 2 * BLOCK_SIZE; // start and end cell is shared the most
+    int sh_width = 2 * width / BYTES_PER_THREAD; // 2 * threads per row
+    __shared__ unsigned char sh_world[2 * BLOCK_SIZE]; // 2 * number of threads in a block
+
+    // load first and last element of the BYTES_PER_THREAD cells into shared memory
+    // these are the cells that are shared the most
+    sh_world[2 * tx] = d_world_in[tid * BYTES_PER_THREAD - 1];
+    sh_world[2 * tx + 1] = d_world_in[tid * BYTES_PER_THREAD + BYTES_PER_THREAD - 2];
+
+    __syncthreads();
 
     // tid is indx of the cell in the world
     // i is the index of every 2 cells, incremented essentially by world size in current setup
@@ -43,13 +64,24 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         uint data1 = (uint)d_world_in[y + x]  << 8;
         uint data2 = (uint)d_world_in[yDown + x]  << 8;
 
+        uint sh_x = (tx * 2 + sh_width - 2) % sh_width;
+        uint sh_y = (tx * 2 / sh_width) * sh_width;
+        uint sh_yUp = (sh_y + sh_size - sh_width) % sh_size;
+        uint sh_yDown = (sh_y + sh_width) % sh_size;
+
+        // uint data1 = (uint)sh_world[sh_x + sh_y] << 8;
+        // uint data1 = (uint)sh_world[dToShIndex(y + x) * 2] << 8;
+        // uint data2 = (uint)sh_world[dToShIndex(yDown + x) * 2] << 8;
+
+        // if (tid < 20) {
+        //     printf("shid = %d, x = %d, y = %d, yUp = %d, yDown = %d\n", sh_x + sh_y, sh_x, sh_y, sh_yUp, sh_yDown);
+        // }
+
         // load in the second byte
         x = (x + 1) % width; // increment x to the next cell
         data0 |= (uint) d_world_in[yUp + x]; // the cell to the right and up
         data1 |= (uint) d_world_in[y + x]; // the cell to the right and down
         data2 |= (uint) d_world_in[yDown + x]; // the cell to the right and down
-
-
 
         for (uint j = 0; j < BYTES_PER_THREAD; j++)
         {
@@ -139,7 +171,6 @@ void runConwayKernel(unsigned char** d_world_in, unsigned char** d_world_out, un
 
         conway_kernel<<<dimGrid, dimBlock>>>(*d_world_in, *d_world_out, lookup_table, width / 8, height);
         std::swap(*d_world_in, *d_world_out);
-
         // printf("iteration %d\n", i + 1);
         // // print first 5 elements of d_world_in
         // for (int j = 0; j < 5; i++) {
