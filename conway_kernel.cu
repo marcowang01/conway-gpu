@@ -37,21 +37,21 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
     int world_size = height * width;
     int tid = bx * blockDim.x + tx;
 
-    int sh_size = 2 * BLOCK_SIZE; // start and end cell is shared the most
+    // int sh_size = 2 * BLOCK_SIZE; // start and end cell is shared the most
     int sh_width = 2 * width / BYTES_PER_THREAD; // 2 * threads per row
     __shared__ unsigned char sh_world[2 * BLOCK_SIZE]; // 2 * number of threads in a block
 
-    __shared__ unsigned int sh_lookup[2 * BLOCK_SIZE];
+    // __shared__ unsigned int sh_lookup[2 * BLOCK_SIZE];
 
     // load first and last element of the BYTES_PER_THREAD cells into shared memory
     // these are the cells that are shared the most
     sh_world[2 * tx] = d_world_in[tid * BYTES_PER_THREAD];
-    sh_lookup[2 * tx] = tid * BYTES_PER_THREAD;
+    // sh_lookup[2 * tx] = tid * BYTES_PER_THREAD;
     // if (tid < 20) {
     //     printf("sh index = %d, d index = %d\n", 2 * tx, tid * BYTES_PER_THREAD);
     // }
     sh_world[2 * tx + 1] = d_world_in[(tid + 1) * BYTES_PER_THREAD - 1];
-    sh_lookup[2 * tx + 1] = (tid + 1) * BYTES_PER_THREAD - 1;
+    // sh_lookup[2 * tx + 1] = (tid + 1) * BYTES_PER_THREAD - 1;
     // if (tid < 20) {
     //     printf("sh index 1 = %d, d index 1 = %d\n", 2 * tx + 1, (tid + 1) * BYTES_PER_THREAD - 1);
     // }
@@ -77,8 +77,8 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
 
         uint sh_x = (tx * 2 + sh_width - 1) % sh_width;
         uint sh_y = (tx * 2 / sh_width) * sh_width;
-        uint sh_yUp = (sh_y + sh_size - sh_width) % sh_size;
-        uint sh_yDown = (sh_y + sh_width) % sh_size;
+        // uint sh_yUp = (sh_y + sh_size - sh_width) % sh_size;
+        // uint sh_yDown = (sh_y + sh_width) % sh_size;
         uint sh_x_next = (sh_x + 1) % sh_width;
 
         uint data0;
@@ -87,17 +87,17 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         // uint data22 = (uint)d_world_in[yDown + x]  << 8;
 
         // can't use shared memory for the top and bottom edge of the block
-        if (tx <= sh_width) { // works if do sh_width / 2 here but make sure its 32 for divergence
+        // if (tx <= sh_width) { // works if do sh_width / 2 here but make sure its 32 for divergence
             data0 = (uint) d_world_in[yUp + x]  << 8 |  d_world_in[yUp + x_next];
-        } else {
-            data0 = (uint) sh_world[sh_x + sh_yUp] << 8 |  sh_world[sh_x_next + sh_yUp];
-        }
+        // } else {
+            // data0 = (uint) sh_world[sh_x + sh_yUp] << 8 |  sh_world[sh_x_next + sh_yUp];
+        // }
 
-        if (tx >= BLOCK_SIZE - sh_width) { // works if do / 2 here but make sure its 32 for divergence
+        // if (tx >= BLOCK_SIZE - sh_width) { // works if do / 2 here but make sure its 32 for divergence
             data2 = (uint) d_world_in[yDown + x]  << 8 |  d_world_in[yDown + x_next];
-        } else {
-            data2 = (uint) sh_world[sh_x + sh_yDown] << 8 | sh_world[sh_x_next + sh_yDown];
-        }
+        // } else {
+            // data2 = (uint) sh_world[sh_x + sh_yDown] << 8 | sh_world[sh_x_next + sh_yDown];
+        // }
 
         x = x_next;
         sh_x = sh_x_next;
@@ -198,18 +198,18 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         data1 = (data1 << 8) | (uint) sh_world[sh_y + sh_x]; // the cell to the right and down
         // data2 = (data2 << 8) | (uint) d_world_in[yDown + x]; // the cell to the right and down
 
-        if (tx <= sh_width) { // works if do sh_width / 2 here but make sure its 32 for divergence
+        // if (tx <= sh_width) { // works if do sh_width / 2 here but make sure its 32 for divergence
             data0 = (data0 << 8) | (uint) d_world_in[yUp + x];
-        } else {
-            data0 = (data0 << 8) | (uint) sh_world[sh_x + sh_yUp];
-        }
+        // } else {
+            // data0 = (data0 << 8) | (uint) sh_world[sh_x + sh_yUp];
+        // }
         
 
-        if (tx >= BLOCK_SIZE - sh_width) { // works if do / 2 here but make sure its 32 for divergence
+        // if (tx >= BLOCK_SIZE - sh_width) { // works if do / 2 here but make sure its 32 for divergence
             data2 = (data2 << 8) | (uint) d_world_in[yDown + x];
-        } else {
-            data2 = (data2 << 8) | (uint) sh_world[sh_yDown + sh_x];
-        }
+        // } else {
+            // data2 = (data2 << 8) | (uint) sh_world[sh_yDown + sh_x];
+        // }
         
         // encodes 6 * 3 block into one 18 bit number to pass in as a key to the lookup table
         uint HighFourBitStates = ((data0 & 0x1F800) << 1) | ((data1 & 0x1F800) >> 5) | ((data2 & 0x1F800) >> 11);
@@ -225,18 +225,18 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
         data1 = (data1 << 8) | (uint) sh_world[sh_y + sh_x]; // the cell to the right and down
         // data2 = (data2 << 8) | (uint) d_world_in[yDown + x]; // the cell to the right and down
 
-        if (tx <= sh_width) { // works if do sh_width / 2 here but make sure its 32 for divergence
+        // if (tx <= sh_width) { // works if do sh_width / 2 here but make sure its 32 for divergence
             data0 = (data0 << 8) | (uint) d_world_in[yUp + x];
-        } else {
-            data0 = (data0 << 8) | (uint) sh_world[sh_x + sh_yUp];
-        }
+        // } else {
+            // data0 = (data0 << 8) | (uint) sh_world[sh_x + sh_yUp];
+        // }
         
 
-        if (tx >= BLOCK_SIZE - sh_width) { // works if do / 2 here but make sure its 32 for divergence
+        // if (tx >= BLOCK_SIZE - sh_width) { // works if do / 2 here but make sure its 32 for divergence
             data2 = (data2 << 8) | (uint) d_world_in[yDown + x];
-        } else {
-            data2 = (data2 << 8) | (uint) sh_world[sh_yDown + sh_x];
-        }
+        // } else {
+            // data2 = (data2 << 8) | (uint) sh_world[sh_yDown + sh_x];
+        // }
         
         // encodes 6 * 3 block into one 18 bit number to pass in as a key to the lookup table
         HighFourBitStates = ((data0 & 0x1F800) << 1) | ((data1 & 0x1F800) >> 5) | ((data2 & 0x1F800) >> 11);
