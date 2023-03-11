@@ -83,6 +83,7 @@ __global__ void conway_kernel(unsigned char* d_world_in, unsigned char* d_world_
 
         uint data0;
         uint data1 = (uint)sh_world[sh_x + sh_y] << 8 | sh_world[sh_x_next + sh_y];
+        // uint data1 = (uint)d_world_in[x + y] << 8 | d_world_in[x_next + y];
         uint data2;
         // uint data22 = (uint)d_world_in[yDown + x]  << 8;
 
