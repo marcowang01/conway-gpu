@@ -33,9 +33,9 @@
 // 1. why not bigger worlds?
 // 2. 
   
-# define WORLD_WIDTH 64
-# define WORLD_HEIGHT 64
-# define ITERATIONS 2
+# define WORLD_WIDTH 4096
+# define WORLD_HEIGHT 4096
+# define ITERATIONS 100
       
 # define VERBOSE false  
 # define IS_RAND true     

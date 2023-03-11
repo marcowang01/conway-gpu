@@ -11,8 +11,8 @@ extern "C"
 void printMatrix(unsigned *u, int h, int w);
 ////////////////////////////////////////////////////////////////////////////////
 
-#define BLOCK_SIZE 2
-#define BYTES_PER_THREAD 1
+#define BLOCK_SIZE 128
+#define BYTES_PER_THREAD 16
 
 // TODO: change back to using ints for better mem access? 
 // TODO: change to using share memory
