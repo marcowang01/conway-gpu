@@ -192,7 +192,7 @@ void runTest( int argc, char** argv )
     cutStartTimer(timer);
     // run the kernel 
     runConwayKernel(&d_world_in, &d_world_out, d_lookup_table, WORLD_WIDTH, WORLD_HEIGHT, ITERATIONS);
-    CUDA_SAFE_CALL( cudaDeviceSynchronize() );
+    CUDA_SAFE_CALL( cudaDeviceSynchronize() ); 
 
     cutStopTimer(timer);
     device_time = cutGetTimerValue(timer);  
@@ -204,10 +204,10 @@ void runTest( int argc, char** argv )
 
     
     // **===-------- Deallocate data structure  -----------===**
-    CUDA_SAFE_CALL(cudaMemcpy(h_world_bits, d_world_out, bit_mem_size, cudaMemcpyDeviceToHost));
+    CUDA_SAFE_CALL(cudaMemcpy(h_world_bits, d_world_in, bit_mem_size, cudaMemcpyDeviceToHost));
  
     // decode the world from the bit array
-    bitPerCellDecode(h_world_bits, h_world_out, WORLD_WIDTH, WORLD_HEIGHT);
+    bitPerCellDecode(h_world_bits, h_world, WORLD_WIDTH, WORLD_HEIGHT);
      
     if (VERBOSE) {
         printf("gpu computed world: \n");
