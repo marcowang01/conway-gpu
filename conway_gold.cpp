@@ -20,7 +20,7 @@ void printMatrix(unsigned *u, int h, int w);
 //! Compute reference data set
 ////////////////////////////////////////////////////////////////////////////////
 
-#define DO_CPU_COMPUTE 1
+#define DO_CPU_COMPUTE 0
 
 void
 computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, int iterations)
@@ -45,7 +45,6 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
                     n += gold_world[y1*width+x1] + gold_world[y1*width+x] + gold_world[y1*width+x2] 
                         + gold_world[y*width+x1] + gold_world[y*width+x2] + gold_world[y2*width+x1] 
                         + gold_world[y2*width+x] + gold_world[y2*width+x2];
-
 
                     tem[y*width+x] = (n == 3 || (n == 2 && gold_world[y*width+x]));
 
@@ -113,9 +112,9 @@ unsigned int compare( const unsigned* reference, unsigned* data, const unsigned 
     if (counts > 0) {
         printf("Error: %d cells are wrong\n", counts);
     }
-    // if (verbose) {
-    //     printMatrix(data, 32, 32);
-    // }
+    if (verbose) {
+        printMatrix(data, 32, 32);
+    }
     return result;
 }
 
