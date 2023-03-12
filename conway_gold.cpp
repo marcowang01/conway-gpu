@@ -48,7 +48,6 @@ computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, 
 
 
                     tem[y*width+x] = (n == 3 || (n == 2 && gold_world[y*width+x]));
-
                 }
             }
 
@@ -101,9 +100,9 @@ unsigned int compare( const unsigned* reference, unsigned* data, const unsigned 
         if( reference[i] != data[i] ) 
         {
             if( verbose) {
-                if (counts < 100) {
-                    printf("Error: data[%d] = %d, reference[%d] = %d\n", i, data[i], i, reference[i]);
-                }
+                // if (counts < 100) {
+                //     printf("Error: data[%d] = %d, reference[%d] = %d\n", i, data[i], i, reference[i]);
+                // }
                 data[i] = 8;
             }
             result = false;
@@ -126,8 +125,8 @@ void printMatrix(unsigned *u, int h, int w)
     if (h > 16) {
         newH = 16;
     }
-    if (w > 32) {
-        newW = 32;
+    if (w > 40) {
+        newW = 40;
     }
     for(int i = 0; i < newH; i++) {
         for(int j = 0; j < newW; j++) {

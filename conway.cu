@@ -165,7 +165,7 @@ void runTest( int argc, char** argv )
     // free(temp_world);
  
     uint lookup_x = 6; 
-    uint lookup_y = 3;
+    uint lookup_y = 4;
     uint lookup_table_size = 1 << (lookup_x * lookup_y) * sizeof(unsigned char);
     unsigned char *h_lookup_table = (unsigned char*) malloc (lookup_table_size); 
     unsigned char *d_lookup_table;
