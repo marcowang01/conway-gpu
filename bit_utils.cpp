@@ -7,19 +7,19 @@ extern "C"
 void printBinary(unsigned n);
 
 extern "C"
-void bitPerCellEncode(unsigned *in, unsigned char  *out, int width, int height);
+void bitPerCellEncode(unsigned *in, unsigned *out, int width, int height);
 
 extern "C"
-void bitPerCellDecode(unsigned char*in, unsigned *out, int width, int height);
+void bitPerCellDecode(unsigned *in, unsigned *out, int width, int height);
 
 ////////////////////////////////////////////////////////////////////////////////
 //! Helpers for encoding and decoding unsigned ints to/from 32-bit representation
 ////////////////////////////////////////////////////////////////////////////////
 // convert a 32-bit unsigned int per cell to 32-bit per cell representation
 // i.e. [1,0,1,0] -> [bx1010] -> [5] 
-void bitPerCellEncode(unsigned *in, unsigned char *out, int width, int height)
+void bitPerCellEncode(unsigned *in, unsigned *out, int width, int height)
 {
-    for (int i = 0; i < width*height/8; i++) {
+    for (int i = 0; i < width*height/32; i++) {
         out[i] = 0;
     }
     for (int y = 0; y < height; y++) {
@@ -28,7 +28,7 @@ void bitPerCellEncode(unsigned *in, unsigned char *out, int width, int height)
 
             unsigned int cell = in[y*width+x];
             if (cell == 1) {
-                out[(y*width+x) / 8] |= 1 << (7 - (y*width+x) % 8);
+                out[(y*width+x) / 32] |= 1 << (31 - (y*width+x) % 32);
             }
         }
     }
@@ -36,12 +36,12 @@ void bitPerCellEncode(unsigned *in, unsigned char *out, int width, int height)
 
 // convert a 32-bit per cell representation to 32-bit unsigned int per cell
 // i.e. [5] -> [bx1010] -> [1,0,1,0]
-void bitPerCellDecode(unsigned char *in, unsigned *out, int width, int height)
+void bitPerCellDecode(unsigned *in, unsigned *out, int width, int height)
 {
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             // cell is either 0 or 1
-            unsigned int cell = in[(y*width+x) / 8] & (1 << (7 - (y*width+x) % 8));
+            unsigned int cell = in[(y*width+x) / 32] & (1 << (31 - (y*width+x) % 32));
             if (cell) {
                 out[y*width+x] = 1;
             } else {

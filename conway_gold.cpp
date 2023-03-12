@@ -20,7 +20,7 @@ void printMatrix(unsigned *u, int h, int w);
 //! Compute reference data set
 ////////////////////////////////////////////////////////////////////////////////
 
-#define DO_CPU_COMPUTE 0
+#define DO_CPU_COMPUTE 1
 
 void
 computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, int iterations)
@@ -75,7 +75,7 @@ inline uint getCellState(uint x, uint y, uint dimX, uint dimY, uint key) {
 }
 
 void computeLookupTable(unsigned char* lookup_table, uint dimX, uint dimY) {
-    uint size = 1 << 18;
+    uint size = 1 << (dimX * dimY);
     for (uint i = 0; i < size ; i++) {
         for (uint cell = 0; cell < 4; cell++) {
             uint n = 0; // number of neighbors
