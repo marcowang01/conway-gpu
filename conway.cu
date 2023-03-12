@@ -13,26 +13,6 @@
   
 #include <conway_kernel.cu>
 
-/*
-    works for:
-        4096 x 4096 
-        4096 x 2048
-        8192 x 8192
-        16384 x 16384
-        256 x 64
-    fails for:
-        4096 x 1024 
-        2048 x 2048 .. 32 
-        4096 x 512 ... 16
-        1024 x 1024 ... 64
-        512 x 512
-        256 x 256  
-*/
- 
-// questions
-// 1. why not bigger worlds?
-// 2. 
-    
 //////////////////////////////////////////////////////////////////////////////// 
 // main test routine    
 void init();    
@@ -69,18 +49,6 @@ void bitPerCellDecode(unsigned *in, unsigned *out, int width, int height);
 ////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char** argv ) 
 {
-    // glutInit(&argc, argv); 
-    // glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    // glutInitWindowSize(WORLD_WIDTH, WORLD_HEIGHT);
-    // glutCreateWindow("Conway's Game of Life");
-
-    // glewInit();
-
-    // glutDisplayFunc(display);
-    
-    // glutMainLoop();
-
-    // return 0;
 
     runTest( argc, argv);
     return EXIT_SUCCESS;

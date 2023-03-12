@@ -20,7 +20,7 @@ void printMatrix(unsigned *u, int h, int w);
 //! Compute reference data set
 ////////////////////////////////////////////////////////////////////////////////
 
-#define DO_CPU_COMPUTE 0
+#define DO_CPU_COMPUTE 1
 
 void
 computeGoldSeq( unsigned* gold_world, unsigned* h_world, int width, int height, int iterations)
