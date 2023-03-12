@@ -101,7 +101,9 @@ unsigned int compare( const unsigned* reference, unsigned* data, const unsigned 
         if( reference[i] != data[i] ) 
         {
             if( verbose) {
-                // printf("Error: data[%d] = %d, reference[%d] = %d\n", i, data[i], i, reference[i]);
+                if (counts < 100) {
+                    printf("Error: data[%d] = %d, reference[%d] = %d\n", i, data[i], i, reference[i]);
+                }
                 data[i] = 8;
             }
             result = false;
@@ -129,6 +131,7 @@ void printMatrix(unsigned *u, int h, int w)
     }
     for(int i = 0; i < newH; i++) {
         for(int j = 0; j < newW; j++) {
+        // for(int j = w - newW; j < w; j++) {
             int number = u[i*(w) + j];
             if (number != 1 && number != 0) {
                 printf("\033[1;31m%d \033[0m", u[i*(w) + j]); 

@@ -13,9 +13,9 @@ void printMatrix(unsigned *u, int h, int w);
 
 # define WORLD_WIDTH 4096
 # define WORLD_HEIGHT 4096
-# define ITERATIONS 2
+# define ITERATIONS 100
       
-# define VERBOSE true  
+# define VERBOSE false  
 # define IS_RAND false  
 
 #define BLOCK_SIZE 128
@@ -36,7 +36,7 @@ __global__ void conway_kernel(unsigned* d_world_in, unsigned* d_world_out,  unsi
 
     // tid is indx of the cell in the world
     // i is the index of every 2 cells, incremented essentially by world size in current setup
-    for (int i = tid * BYTES_PER_THREAD; i < world_size; i += blockDim.x * gridDim.x * BYTES_PER_THREAD)
+    for (int i = tid * 4; i < world_size; i += blockDim.x * gridDim.x * BYTES_PER_THREAD * 8)
     {
         // ** Fetch 2 bytes and the rows above and below  as data0,1,2**
         
@@ -81,59 +81,62 @@ __global__ void conway_kernel(unsigned* d_world_in, unsigned* d_world_out,  unsi
 
             // uint temp = (data0 & 0x1F800000000 >> 23);
 
-            if (tid == 0 && j == 0) {
-                printf("\niter: %d, x = %d, y = %d, yUp = %d, yDown = %d\n", j, x, y, yUp, yDown);
-                printf("printing data 0 1 2 \n");
-                for(int i = 63; i >= 0; i--) {
-                    if (i % 8 == 7)
-                        printf(" ");
-                    printf("%llu", (data0 >> i) & 1);
-                }
-                printf("\n");
-                for(int i = 63; i >= 0; i--) {
-                    if (i % 8 == 7)
-                        printf(" ");
-                    printf("%llu", (data1 >> i) & 1);
-                }
-                printf("\n");
-                for(int i = 63; i >= 0; i--) {
-                    if (i % 8 == 7)
-                        printf(" ");
-                    printf("%llu", (data2 >> i) & 1);
-                }
-                printf("\n");
-                for(int i = 63; i >= 0; i--) {
-                    if (i % 8 == 7)
-                        printf(" ");
-                    printf("%llu", (((data1 & 0x1F800000000) >> 29) >> i) & 1);
-                }
-                printf("\n");
-                for(int i = 63; i >= 0; i--) {
-                    if (i % 8 == 7)
-                        printf(" ");
-                    printf("%llu", (((data2 & 0x1F800000000) >> 35) >> i) & 1);
-                }
-                printf("\n");
-                printf("printing A \n");
-                for(int i = 19; i >= 0; i--) {
-                    if (i % 6 == 5)
-                        printf(" ");
-                    printf("%d", (highA >> i) & 1);
-                }
-                printf("\n");
-                for(int i = 19; i >= 0; i--) {
-                    if (i % 6 == 5)
-                        printf(" ");
-                    printf("%d", (lowA >> i) & 1);
-                }
-                printf("\n");
-                for(int i = 3; i >= 0; i--) {
-                    if (i % 6 == 5)
-                        printf(" ");
-                    printf("%d", (lookup_table[highA] >> i) & 1);
-                }
-                printf("\n");
-            }
+            // if (tid == 0 && j == 0) {
+            //     printf("\niter: %d, x = %d, y = %d, yUp = %d, yDown = %d\n", j, x, y, yUp, yDown);
+            //     printf("printing data 0 1 2 \n");
+            //     for(int i = 63; i >= 0; i--) {
+            //         if (i % 8 == 7)
+            //             printf(" ");
+            //         printf("%llu", (data0 >> i) & 1);
+            //     }
+            //     printf("\n");
+            //     for(int i = 63; i >= 0; i--) {
+            //         if (i % 8 == 7)
+            //             printf(" ");
+            //         printf("%llu", (data1 >> i) & 1);
+            //     }
+            //     printf("\n");
+            //     for(int i = 63; i >= 0; i--) {
+            //         if (i % 8 == 7)
+            //             printf(" ");
+            //         printf("%llu", (data2 >> i) & 1);
+            //     }
+            //     printf("\n");
+            //     for(int i = 63; i >= 0; i--) {
+            //         if (i % 8 == 7)
+            //             printf(" ");
+            //         printf("%llu", (((data1 & 0x1F800000000) >> 29) >> i) & 1);
+            //     }
+            //     printf("\n");
+            //     for(int i = 63; i >= 0; i--) {
+            //         if (i % 8 == 7)
+            //             printf(" ");
+            //         printf("%llu", (((data2 & 0x1F800000000) >> 35) >> i) & 1);
+            //     }
+            //     printf("\n");
+            //     printf("printing A high \n");
+            //     for(int i = 19; i >= 0; i--) {
+            //         if (i % 6 == 5)
+            //             printf("\n");
+            //         printf("%d", (highA >> i) & 1);
+            //     }
+            //     printf("\n");
+            //     printf("printing A low \n");
+            //     for(int i = 19; i >= 0; i--) {
+            //         if (i % 6 == 5)
+            //             printf("\n");
+            //         printf("%d", (lowA >> i) & 1);
+            //     }
+            //     printf("\n");
+            //     printf("printing A outcome \n");
+            //     for(int i = 12; i >= 0; i--) {
+            //         if (i % 8 == 7)
+            //             printf(" ");
+            //         printf("%d", (((lookup_table[highA] << 4) | (lookup_table[lowA])) >> i) & 1);
+            //         // printf("%d", ((lookup_table[highA]) >> i) & 1);
+            //     }
+            //     printf("\n");
+            // }
 
             // get the updated state of the cells in the second uint loaded in
             d_world_out[currentState + y] = (
@@ -251,7 +254,7 @@ void runConwayKernel(unsigned ** d_world_in, unsigned ** d_world_out, unsigned c
     // each thread will process BYTES_PER_THREAD * 8 cells
     // each block will process contiguous BYTES_PER_THREAD * 8 * BLOCK_SIZE cells
 
-    size_t numBlocks = (height * width) / 32 / BYTES_PER_THREAD / BLOCK_SIZE;
+    size_t numBlocks = (height * width) / 32 / 4 / BLOCK_SIZE;
     dim3 dimBlock(BLOCK_SIZE, 1, 1);
     dim3 dimGrid(numBlocks, 1, 1);
     if (iterations > 1)

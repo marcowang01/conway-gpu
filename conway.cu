@@ -234,7 +234,7 @@ void randomInit( unsigned int* world )
     if (IS_RAND) {
         srand( time(NULL) );
     } else { 
-        srand( 23342322 ) ;
+        srand( 22223 ) ;
     }
     for( unsigned int i = 0; i < WORLD_WIDTH * WORLD_HEIGHT; ++i) 
     {    
